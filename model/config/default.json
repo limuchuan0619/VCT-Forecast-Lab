@@ -1,0 +1,19 @@
+{
+  "base_rating": 1500.0,
+  "elo_scale": 400.0,
+  "series_k": 45.0,
+  "map_k": 18.0,
+  "form_half_life_days": 70.0,
+  "form_window_days": 180,
+  "map_prior_matches": 8.0,
+  "monte_carlo_runs": 20000,
+  "weights": {
+    "recent_form": 0.45,
+    "player_form": 0.32,
+    "roster_continuity": 0.3,
+    "patch_fit": 0.22,
+    "international_experience": 0.2,
+    "series_adaptability": 0.22,
+    "tactical_matchup": 0.24
+  }
+}

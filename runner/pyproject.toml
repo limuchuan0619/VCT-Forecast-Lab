@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vct-prediction-model"
+version = "0.1.0"
+description = "可解释、可回测的 VCT 比赛预测模型 V1"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+vct-model = "vct_prediction.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

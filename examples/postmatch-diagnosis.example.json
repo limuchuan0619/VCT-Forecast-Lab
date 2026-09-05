@@ -1,0 +1,33 @@
+{
+  "stage": "postmatch_model_diagnosis",
+  "prediction_summary": {
+    "champion_probability_team_a": 0.61,
+    "challenger_probability_team_a": 0.57,
+    "actual_winner": "Example Bravo"
+  },
+  "facts": [
+    {
+      "statement": "Example Bravo won the synthetic match.",
+      "evidence_ids": ["result:example-fixture-001"]
+    }
+  ],
+  "model_signals": [
+    {
+      "statement": "Both models favored Example Alpha before the match.",
+      "evidence_ids": ["freeze:example-snapshot-001"]
+    }
+  ],
+  "hypotheses": [
+    {
+      "hypothesis": "Roster-change uncertainty may be underrepresented.",
+      "tag": "roster_change",
+      "evidence_ids": ["feature:roster_continuity_diff"],
+      "confidence": 0.45
+    }
+  ],
+  "research_hypothesis": "Test a separately governed roster-uncertainty feature in a future challenger.",
+  "direct_probability_change_allowed": false,
+  "direct_training_allowed": false,
+  "direct_promotion_allowed": false,
+  "synthetic": true
+}

@@ -1,0 +1,19 @@
+{
+  "fixture_id": "example-fixture-001",
+  "scheduled_match_time": "2026-09-05T12:00:00Z",
+  "feature_snapshot_id": "example-snapshot-001",
+  "feature_snapshot_hash": "example-only-not-a-production-hash",
+  "champion": {
+    "model_version": "v1.0.0",
+    "team_a_probability": 0.61
+  },
+  "challenger": {
+    "model_version": "logistic_c1_v1.4b_20260903",
+    "team_a_probability": 0.57,
+    "mode": "FROZEN_SHADOW"
+  },
+  "probability_delta": -0.04,
+  "frozen_at": "2026-09-05T01:01:00Z",
+  "record_kind": "synthetic_example",
+  "eligible_for_prospective_gate": false
+}

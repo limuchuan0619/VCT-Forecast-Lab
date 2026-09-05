@@ -1,0 +1,11 @@
+{
+  "artifact_role": "public reproducibility subset",
+  "model_id": "logistic_c1_v1.4b_20260903",
+  "dataset_version": "v1.4b-c1-20260903",
+  "dataset_sha256": "66b5593a00f72cbed8506210c57954f85ffedff5365684b86fb680bffb335c92",
+  "source_artifact_hash": "a3c7ef394b4a9476d70c318276f9fb835a8179a6201242eaf13adffb4cec0ff4",
+  "missing_value_policy": "Never raw-zero fill. Logistic uses Train-only means plus explicit missing and imputed indicators.",
+  "event_cohort_policy": "Context only; not a Logistic feature and not claimed to be a true VALORANT patch.",
+  "public_subset": true,
+  "dataset_rows_included": false
+}

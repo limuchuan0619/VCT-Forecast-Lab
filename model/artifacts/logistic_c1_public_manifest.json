@@ -1,0 +1,30 @@
+{
+  "artifact_role": "public reproducibility subset",
+  "model_id": "logistic_c1_v1.4b_20260903",
+  "dataset_version": "v1.4b-c1-20260903",
+  "source_artifact_hash": "a3c7ef394b4a9476d70c318276f9fb835a8179a6201242eaf13adffb4cec0ff4",
+  "included": [
+    "feature schema",
+    "train-only imputation parameters",
+    "train-only standardization parameters",
+    "coefficients",
+    "intercept",
+    "regularization selection",
+    "aggregate evaluation metrics"
+  ],
+  "excluded": [
+    "historical dataset rows",
+    "test prediction rows",
+    "formal SQLite database",
+    "local database paths",
+    "raw source material"
+  ],
+  "historical_split": {
+    "train": 650,
+    "validation": 150,
+    "frozen_test": 200
+  },
+  "historical_verdict": "INCONCLUSIVE",
+  "prospective_status_at_publication": "ACCUMULATING",
+  "prospective_eligible_resolved_at_publication": 0
+}

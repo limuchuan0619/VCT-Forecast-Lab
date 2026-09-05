@@ -1,0 +1,84 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+!**/.env.example
+secrets/
+**/secrets/
+
+# Databases and runtime state
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.db
+*.db-*
+data/
+**/data/
+seed/
+**/seed/
+work/
+**/work/
+raw/
+**/raw/
+raw_data/
+**/raw_data/
+cache/
+**/cache/
+logs/
+**/logs/
+.wrangler/
+**/.wrangler/
+.xdg/
+**/.xdg/
+
+# Raw or generated model material
+*.jsonl
+dataset.jsonl
+test_predictions.jsonl
+predictions.jsonl
+source_snapshots/
+scrape_cache/
+
+# Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Node / frontend
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+.vinext/
+**/.vinext/
+dist/
+**/dist/
+build/
+**/build/
+coverage/
+**/coverage/
+*.tsbuildinfo
+
+# Logs and archives
+*.log
+*.tar
+*.tar.gz
+*.zip
+
+# Deployment bindings and local tools
+.openai/hosting.json
+**/.openai/hosting.json
+.railway/
+**/.railway/
+.dev.vars
+**/.dev.vars
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

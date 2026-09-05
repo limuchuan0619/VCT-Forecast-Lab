@@ -1,0 +1,33 @@
+{
+  "fixture_id": "example-fixture-001",
+  "created_at": "2026-09-05T01:00:00Z",
+  "scheduled_match_time": "2026-09-05T12:00:00Z",
+  "feature_cutoff_time": "2026-09-05T01:00:00Z",
+  "team_a": "Example Alpha",
+  "team_b": "Example Bravo",
+  "features": {
+    "team_rating_diff": 42.5,
+    "recent_form_diff": 0.08,
+    "map_strength_diff": -12.0,
+    "roster_continuity_diff": 0.2,
+    "player_form_diff": 0.04,
+    "acs_diff": 6.7,
+    "adr_diff": 3.2,
+    "kast_diff": null,
+    "player_rating_diff": 0.03,
+    "fk_fd_diff": 1.4
+  },
+  "feature_status": {
+    "team_rating_diff": "observed",
+    "recent_form_diff": "observed",
+    "map_strength_diff": "observed",
+    "roster_continuity_diff": "observed",
+    "player_form_diff": "observed",
+    "acs_diff": "observed",
+    "adr_diff": "imputed_team_mean",
+    "kast_diff": "feature_unavailable",
+    "player_rating_diff": "observed",
+    "fk_fd_diff": "observed"
+  },
+  "synthetic": true
+}

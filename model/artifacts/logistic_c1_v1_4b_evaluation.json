@@ -1,0 +1,874 @@
+{
+  "champion_v1_replay": {
+    "frozen_weights": {
+      "international_experience": 0.2,
+      "patch_fit": 0.22,
+      "player_form": 0.32,
+      "recent_form": 0.45,
+      "roster_continuity": 0.3,
+      "series_adaptability": 0.22,
+      "tactical_matchup": 0.24
+    },
+    "model_version": "v1.0.0",
+    "proxy": [
+      "map_pool: prior-only active-map mean with fixed 50/50 shrink toward team rating"
+    ],
+    "replayable": [
+      "team_rating",
+      "recent_form",
+      "player_form",
+      "roster_continuity"
+    ],
+    "status": "FROZEN_BENCHMARK_PARTIAL_REPLAY_PROXY",
+    "unavailable": [
+      "true_patch",
+      "patch_fit",
+      "exact_bp_veto",
+      "target_maps",
+      "official_pre_match_roster",
+      "international_experience",
+      "series_adaptability",
+      "tactical_matchup"
+    ]
+  },
+  "dataset_version": "v1.4b-c1-20260903",
+  "elo": {
+    "base_rating": 1500.0,
+    "k": 32.0,
+    "result_update": "binary outcome after match; equal-time matches update as a batch",
+    "scale": 400.0
+  },
+  "evaluation_scope": "offline_historical_only",
+  "logistic_c1": {
+    "coefficients": [
+      {
+        "absolute_rank_value": 0.30112226,
+        "direction": "team_a",
+        "feature": "team_rating_diff",
+        "raw_scale_coefficient": 0.00247021,
+        "standardized_coefficient": 0.30112226
+      },
+      {
+        "absolute_rank_value": 0.10952974,
+        "direction": "team_a",
+        "feature": "acs_diff",
+        "raw_scale_coefficient": 0.01012298,
+        "standardized_coefficient": 0.10952974
+      },
+      {
+        "absolute_rank_value": 0.09351481,
+        "direction": "team_a",
+        "feature": "fk_fd_diff",
+        "raw_scale_coefficient": 0.21814772,
+        "standardized_coefficient": 0.09351481
+      },
+      {
+        "absolute_rank_value": 0.08012415,
+        "direction": "team_a",
+        "feature": "adr_diff",
+        "raw_scale_coefficient": 0.01118363,
+        "standardized_coefficient": 0.08012415
+      },
+      {
+        "absolute_rank_value": 0.07373879,
+        "direction": "team_a",
+        "feature": "map_strength_diff",
+        "raw_scale_coefficient": 0.00436898,
+        "standardized_coefficient": 0.07373879
+      },
+      {
+        "absolute_rank_value": 0.06445552,
+        "direction": "team_a",
+        "feature": "player_rating_diff",
+        "raw_scale_coefficient": 0.73723312,
+        "standardized_coefficient": 0.06445552
+      },
+      {
+        "absolute_rank_value": 0.04766799,
+        "direction": "team_a",
+        "feature": "recent_form_diff",
+        "raw_scale_coefficient": 0.10455898,
+        "standardized_coefficient": 0.04766799
+      },
+      {
+        "absolute_rank_value": 0.03999946,
+        "direction": "team_a",
+        "feature": "kast_diff__imputed",
+        "raw_scale_coefficient": 0.28571044,
+        "standardized_coefficient": 0.03999946
+      },
+      {
+        "absolute_rank_value": 0.03999946,
+        "direction": "team_a",
+        "feature": "fk_fd_diff__imputed",
+        "raw_scale_coefficient": 0.28571044,
+        "standardized_coefficient": 0.03999946
+      },
+      {
+        "absolute_rank_value": 0.03162586,
+        "direction": "team_a",
+        "feature": "roster_continuity_diff",
+        "raw_scale_coefficient": 0.17146142,
+        "standardized_coefficient": 0.03162586
+      },
+      {
+        "absolute_rank_value": 0.03065145,
+        "direction": "team_b",
+        "feature": "recent_form_diff__unavailable",
+        "raw_scale_coefficient": -0.23763893,
+        "standardized_coefficient": -0.03065145
+      },
+      {
+        "absolute_rank_value": 0.03065145,
+        "direction": "team_b",
+        "feature": "map_strength_diff__unavailable",
+        "raw_scale_coefficient": -0.23763893,
+        "standardized_coefficient": -0.03065145
+      },
+      {
+        "absolute_rank_value": 0.03065145,
+        "direction": "team_b",
+        "feature": "acs_diff__unavailable",
+        "raw_scale_coefficient": -0.23763893,
+        "standardized_coefficient": -0.03065145
+      },
+      {
+        "absolute_rank_value": 0.01621531,
+        "direction": "team_a",
+        "feature": "adr_diff__unavailable",
+        "raw_scale_coefficient": 0.06998542,
+        "standardized_coefficient": 0.01621531
+      },
+      {
+        "absolute_rank_value": 0.01621531,
+        "direction": "team_a",
+        "feature": "kast_diff__unavailable",
+        "raw_scale_coefficient": 0.06998542,
+        "standardized_coefficient": 0.01621531
+      },
+      {
+        "absolute_rank_value": 0.01621531,
+        "direction": "team_a",
+        "feature": "player_rating_diff__unavailable",
+        "raw_scale_coefficient": 0.06998542,
+        "standardized_coefficient": 0.01621531
+      },
+      {
+        "absolute_rank_value": 0.01621531,
+        "direction": "team_a",
+        "feature": "fk_fd_diff__unavailable",
+        "raw_scale_coefficient": 0.06998542,
+        "standardized_coefficient": 0.01621531
+      },
+      {
+        "absolute_rank_value": 0.0113477,
+        "direction": "team_a",
+        "feature": "player_form_diff",
+        "raw_scale_coefficient": 0.03361805,
+        "standardized_coefficient": 0.0113477
+      },
+      {
+        "absolute_rank_value": 0.00395161,
+        "direction": "team_a",
+        "feature": "kast_diff",
+        "raw_scale_coefficient": 0.10627771,
+        "standardized_coefficient": 0.00395161
+      },
+      {
+        "absolute_rank_value": 0.00221064,
+        "direction": "team_b",
+        "feature": "adr_diff__imputed",
+        "raw_scale_coefficient": -0.01522783,
+        "standardized_coefficient": -0.00221064
+      },
+      {
+        "absolute_rank_value": 0.00221064,
+        "direction": "team_b",
+        "feature": "player_rating_diff__imputed",
+        "raw_scale_coefficient": -0.01522783,
+        "standardized_coefficient": -0.00221064
+      }
+    ],
+    "converged": true,
+    "features": [
+      "team_rating_diff",
+      "recent_form_diff",
+      "map_strength_diff",
+      "roster_continuity_diff",
+      "player_form_diff",
+      "acs_diff",
+      "adr_diff",
+      "kast_diff",
+      "player_rating_diff",
+      "fk_fd_diff"
+    ],
+    "intercept": 0.08378754,
+    "iterations": 5,
+    "preprocessor": {
+      "columns": [
+        "team_rating_diff",
+        "recent_form_diff",
+        "map_strength_diff",
+        "roster_continuity_diff",
+        "player_form_diff",
+        "acs_diff",
+        "adr_diff",
+        "kast_diff",
+        "player_rating_diff",
+        "fk_fd_diff",
+        "recent_form_diff__unavailable",
+        "map_strength_diff__unavailable",
+        "acs_diff__unavailable",
+        "adr_diff__imputed",
+        "adr_diff__unavailable",
+        "kast_diff__imputed",
+        "kast_diff__unavailable",
+        "player_rating_diff__imputed",
+        "player_rating_diff__unavailable",
+        "fk_fd_diff__imputed",
+        "fk_fd_diff__unavailable"
+      ],
+      "dropped_constant_columns": [
+        "team_rating_diff__imputed",
+        "team_rating_diff__unavailable",
+        "recent_form_diff__imputed",
+        "map_strength_diff__imputed",
+        "roster_continuity_diff__imputed",
+        "roster_continuity_diff__unavailable",
+        "player_form_diff__imputed",
+        "player_form_diff__unavailable",
+        "acs_diff__imputed"
+      ],
+      "feature_imputation": {
+        "acs_diff": 0.1841912572769953,
+        "adr_diff": 0.28197039831973897,
+        "fk_fd_diff": 0.03426308615008157,
+        "kast_diff": 0.002253489347471452,
+        "map_strength_diff": 1.4877686010798123,
+        "player_form_diff": -0.058308222800000004,
+        "player_rating_diff": 0.0045371020391517134,
+        "recent_form_diff": 0.011782650438184663,
+        "roster_continuity_diff": 0.023333333338461538,
+        "team_rating_diff": 13.49223183253846
+      },
+      "fit_scope": "train_only",
+      "means": {
+        "acs_diff": 0.1841912572769953,
+        "acs_diff__unavailable": 0.016923076923076923,
+        "adr_diff": 0.28197039831973897,
+        "adr_diff__imputed": 0.021538461538461538,
+        "adr_diff__unavailable": 0.05692307692307692,
+        "fk_fd_diff": 0.03426308615008157,
+        "fk_fd_diff__imputed": 0.02,
+        "fk_fd_diff__unavailable": 0.05692307692307692,
+        "kast_diff": 0.002253489347471452,
+        "kast_diff__imputed": 0.02,
+        "kast_diff__unavailable": 0.05692307692307692,
+        "map_strength_diff": 1.4877686010798121,
+        "map_strength_diff__unavailable": 0.016923076923076923,
+        "player_form_diff": -0.058308222800000004,
+        "player_rating_diff": 0.0045371020391517134,
+        "player_rating_diff__imputed": 0.021538461538461538,
+        "player_rating_diff__unavailable": 0.05692307692307692,
+        "recent_form_diff": 0.011782650438184663,
+        "recent_form_diff__unavailable": 0.016923076923076923,
+        "roster_continuity_diff": 0.023333333338461538,
+        "team_rating_diff": 13.49223183253846
+      },
+      "scales": {
+        "acs_diff": 10.819913365835724,
+        "acs_diff__unavailable": 0.12898327949983496,
+        "adr_diff": 7.164415444576226,
+        "adr_diff__imputed": 0.14517078291797478,
+        "adr_diff__unavailable": 0.23169557664462734,
+        "fk_fd_diff": 0.42867655406492017,
+        "fk_fd_diff__imputed": 0.13999999999999999,
+        "fk_fd_diff__unavailable": 0.23169557664462734,
+        "kast_diff": 0.03718194158060072,
+        "kast_diff__imputed": 0.13999999999999999,
+        "kast_diff__unavailable": 0.23169557664462734,
+        "map_strength_diff": 16.877790766300443,
+        "map_strength_diff__unavailable": 0.12898327949983496,
+        "player_form_diff": 0.3375479570964342,
+        "player_rating_diff": 0.08742895785275691,
+        "player_rating_diff__imputed": 0.14517078291797478,
+        "player_rating_diff__unavailable": 0.23169557664462734,
+        "recent_form_diff": 0.4558956901013572,
+        "recent_form_diff__unavailable": 0.12898327949983496,
+        "roster_continuity_diff": 0.1844488208767885,
+        "team_rating_diff": 121.90166715936003
+      },
+      "unavailable_policy": "train_mean_imputation_plus_explicit_indicator"
+    },
+    "regularization_selection": {
+      "candidates": [
+        {
+          "converged": true,
+          "iterations": 6,
+          "l2_strength": 0.001,
+          "validation_metrics": {
+            "accuracy": 0.64,
+            "brier_score": 0.2297482,
+            "calibration": [
+              {
+                "absolute_gap": 0.073549,
+                "actual_a_win_rate": 0.0,
+                "mean_predicted_a": 0.073549,
+                "n": 1,
+                "probability_bin": "0-10%"
+              },
+              {
+                "absolute_gap": 0.165418,
+                "actual_a_win_rate": 0.333333,
+                "mean_predicted_a": 0.167915,
+                "n": 3,
+                "probability_bin": "10-20%"
+              },
+              {
+                "absolute_gap": 0.068298,
+                "actual_a_win_rate": 0.333333,
+                "mean_predicted_a": 0.265036,
+                "n": 12,
+                "probability_bin": "20-30%"
+              },
+              {
+                "absolute_gap": 0.047032,
+                "actual_a_win_rate": 0.318182,
+                "mean_predicted_a": 0.365214,
+                "n": 22,
+                "probability_bin": "30-40%"
+              },
+              {
+                "absolute_gap": 0.106312,
+                "actual_a_win_rate": 0.352941,
+                "mean_predicted_a": 0.459253,
+                "n": 34,
+                "probability_bin": "40-50%"
+              },
+              {
+                "absolute_gap": 0.010682,
+                "actual_a_win_rate": 0.545455,
+                "mean_predicted_a": 0.556137,
+                "n": 33,
+                "probability_bin": "50-60%"
+              },
+              {
+                "absolute_gap": 0.06627,
+                "actual_a_win_rate": 0.576923,
+                "mean_predicted_a": 0.643193,
+                "n": 26,
+                "probability_bin": "60-70%"
+              },
+              {
+                "absolute_gap": 0.000426,
+                "actual_a_win_rate": 0.733333,
+                "mean_predicted_a": 0.733759,
+                "n": 15,
+                "probability_bin": "70-80%"
+              },
+              {
+                "absolute_gap": 0.149944,
+                "actual_a_win_rate": 1.0,
+                "mean_predicted_a": 0.850056,
+                "n": 3,
+                "probability_bin": "80-90%"
+              },
+              {
+                "absolute_gap": 0.082265,
+                "actual_a_win_rate": 1.0,
+                "mean_predicted_a": 0.917735,
+                "n": 1,
+                "probability_bin": "90-100%"
+              }
+            ],
+            "ece_10_bin": 0.05768474,
+            "log_loss": 0.65133165,
+            "n": 150,
+            "probability_distribution": {
+              "high_confidence_accuracy": 0.84615385,
+              "high_confidence_count": 13,
+              "maximum": 0.91773475,
+              "mean": 0.51304578,
+              "minimum": 0.07354903,
+              "standard_deviation": 0.15733364
+            }
+          }
+        },
+        {
+          "converged": true,
+          "iterations": 5,
+          "l2_strength": 0.01,
+          "validation_metrics": {
+            "accuracy": 0.65333333,
+            "brier_score": 0.22849303,
+            "calibration": [
+              {
+                "absolute_gap": 0.08412,
+                "actual_a_win_rate": 0.0,
+                "mean_predicted_a": 0.08412,
+                "n": 1,
+                "probability_bin": "0-10%"
+              },
+              {
+                "absolute_gap": 0.335726,
+                "actual_a_win_rate": 0.5,
+                "mean_predicted_a": 0.164274,
+                "n": 2,
+                "probability_bin": "10-20%"
+              },
+              {
+                "absolute_gap": 0.004982,
+                "actual_a_win_rate": 0.272727,
+                "mean_predicted_a": 0.267745,
+                "n": 11,
+                "probability_bin": "20-30%"
+              },
+              {
+                "absolute_gap": 0.012097,
+                "actual_a_win_rate": 0.375,
+                "mean_predicted_a": 0.362903,
+                "n": 24,
+                "probability_bin": "30-40%"
+              },
+              {
+                "absolute_gap": 0.162338,
+                "actual_a_win_rate": 0.294118,
+                "mean_predicted_a": 0.456456,
+                "n": 34,
+                "probability_bin": "40-50%"
+              },
+              {
+                "absolute_gap": 0.033399,
+                "actual_a_win_rate": 0.586207,
+                "mean_predicted_a": 0.552808,
+                "n": 29,
+                "probability_bin": "50-60%"
+              },
+              {
+                "absolute_gap": 0.067258,
+                "actual_a_win_rate": 0.566667,
+                "mean_predicted_a": 0.633925,
+                "n": 30,
+                "probability_bin": "60-70%"
+              },
+              {
+                "absolute_gap": 0.015922,
+                "actual_a_win_rate": 0.75,
+                "mean_predicted_a": 0.734078,
+                "n": 16,
+                "probability_bin": "70-80%"
+              },
+              {
+                "absolute_gap": 0.140649,
+                "actual_a_win_rate": 1.0,
+                "mean_predicted_a": 0.859351,
+                "n": 2,
+                "probability_bin": "80-90%"
+              },
+              {
+                "absolute_gap": 0.090497,
+                "actual_a_win_rate": 1.0,
+                "mean_predicted_a": 0.909503,
+                "n": 1,
+                "probability_bin": "90-100%"
+              }
+            ],
+            "ece_10_bin": 0.06822049,
+            "log_loss": 0.64806102,
+            "n": 150,
+            "probability_distribution": {
+              "high_confidence_accuracy": 0.83333333,
+              "high_confidence_count": 12,
+              "maximum": 0.90950298,
+              "mean": 0.51339772,
+              "minimum": 0.08411991,
+              "standard_deviation": 0.15285007
+            }
+          }
+        },
+        {
+          "converged": true,
+          "iterations": 5,
+          "l2_strength": 0.1,
+          "validation_metrics": {
+            "accuracy": 0.64,
+            "brier_score": 0.22793871,
+            "calibration": [
+              {
+                "absolute_gap": 0.138777,
+                "actual_a_win_rate": 0.0,
+                "mean_predicted_a": 0.138777,
+                "n": 1,
+                "probability_bin": "10-20%"
+              },
+              {
+                "absolute_gap": 0.048512,
+                "actual_a_win_rate": 0.2,
+                "mean_predicted_a": 0.248512,
+                "n": 5,
+                "probability_bin": "20-30%"
+              },
+              {
+                "absolute_gap": 0.055865,
+                "actual_a_win_rate": 0.3125,
+                "mean_predicted_a": 0.368365,
+                "n": 32,
+                "probability_bin": "30-40%"
+              },
+              {
+                "absolute_gap": 0.076636,
+                "actual_a_win_rate": 0.382353,
+                "mean_predicted_a": 0.458989,
+                "n": 34,
+                "probability_bin": "40-50%"
+              },
+              {
+                "absolute_gap": 0.051015,
+                "actual_a_win_rate": 0.611111,
+                "mean_predicted_a": 0.560097,
+                "n": 36,
+                "probability_bin": "50-60%"
+              },
+              {
+                "absolute_gap": 0.141132,
+                "actual_a_win_rate": 0.5,
+                "mean_predicted_a": 0.641132,
+                "n": 30,
+                "probability_bin": "60-70%"
+              },
+              {
+                "absolute_gap": 0.163877,
+                "actual_a_win_rate": 0.888889,
+                "mean_predicted_a": 0.725011,
+                "n": 9,
+                "probability_bin": "70-80%"
+              },
+              {
+                "absolute_gap": 0.161383,
+                "actual_a_win_rate": 1.0,
+                "mean_predicted_a": 0.838617,
+                "n": 3,
+                "probability_bin": "80-90%"
+              }
+            ],
+            "ece_10_bin": 0.0853612,
+            "log_loss": 0.64632804,
+            "n": 150,
+            "probability_distribution": {
+              "high_confidence_accuracy": 0.88888889,
+              "high_confidence_count": 9,
+              "maximum": 0.86666962,
+              "mean": 0.51475359,
+              "minimum": 0.13877723,
+              "standard_deviation": 0.13317221
+            }
+          }
+        },
+        {
+          "converged": true,
+          "iterations": 4,
+          "l2_strength": 1.0,
+          "validation_metrics": {
+            "accuracy": 0.60666667,
+            "brier_score": 0.23511518,
+            "calibration": [
+              {
+                "absolute_gap": 0.159818,
+                "actual_a_win_rate": 0.2,
+                "mean_predicted_a": 0.359818,
+                "n": 5,
+                "probability_bin": "30-40%"
+              },
+              {
+                "absolute_gap": 0.102364,
+                "actual_a_win_rate": 0.357143,
+                "mean_predicted_a": 0.459507,
+                "n": 56,
+                "probability_bin": "40-50%"
+              },
+              {
+                "absolute_gap": 0.029177,
+                "actual_a_win_rate": 0.52,
+                "mean_predicted_a": 0.549177,
+                "n": 75,
+                "probability_bin": "50-60%"
+              },
+              {
+                "absolute_gap": 0.208292,
+                "actual_a_win_rate": 0.846154,
+                "mean_predicted_a": 0.637862,
+                "n": 13,
+                "probability_bin": "60-70%"
+              },
+              {
+                "absolute_gap": 0.282308,
+                "actual_a_win_rate": 1.0,
+                "mean_predicted_a": 0.717692,
+                "n": 1,
+                "probability_bin": "70-80%"
+              }
+            ],
+            "ece_10_bin": 0.07806584,
+            "log_loss": 0.66268534,
+            "n": 150,
+            "probability_distribution": {
+              "high_confidence_accuracy": null,
+              "high_confidence_count": 0,
+              "maximum": 0.7176917,
+              "mean": 0.51819779,
+              "minimum": 0.31516752,
+              "standard_deviation": 0.06884468
+            }
+          }
+        }
+      ],
+      "grid": [
+        0.001,
+        0.01,
+        0.1,
+        1.0
+      ],
+      "metric": "validation_log_loss",
+      "selected_l2_strength": 0.1
+    }
+  },
+  "test_evaluated_once_after_protocol_freeze": true,
+  "test_metrics": {
+    "champion_v1_replay_proxy": {
+      "accuracy": 0.61,
+      "brier_score": 0.24395178,
+      "calibration": [
+        {
+          "absolute_gap": 0.099718,
+          "actual_a_win_rate": 0.0,
+          "mean_predicted_a": 0.099718,
+          "n": 1,
+          "probability_bin": "0-10%"
+        },
+        {
+          "absolute_gap": 0.124331,
+          "actual_a_win_rate": 0.285714,
+          "mean_predicted_a": 0.161384,
+          "n": 7,
+          "probability_bin": "10-20%"
+        },
+        {
+          "absolute_gap": 0.016579,
+          "actual_a_win_rate": 0.222222,
+          "mean_predicted_a": 0.238801,
+          "n": 9,
+          "probability_bin": "20-30%"
+        },
+        {
+          "absolute_gap": 0.055155,
+          "actual_a_win_rate": 0.411765,
+          "mean_predicted_a": 0.35661,
+          "n": 34,
+          "probability_bin": "30-40%"
+        },
+        {
+          "absolute_gap": 0.108958,
+          "actual_a_win_rate": 0.341463,
+          "mean_predicted_a": 0.450422,
+          "n": 41,
+          "probability_bin": "40-50%"
+        },
+        {
+          "absolute_gap": 0.007412,
+          "actual_a_win_rate": 0.55814,
+          "mean_predicted_a": 0.550727,
+          "n": 43,
+          "probability_bin": "50-60%"
+        },
+        {
+          "absolute_gap": 0.06889,
+          "actual_a_win_rate": 0.575,
+          "mean_predicted_a": 0.64389,
+          "n": 40,
+          "probability_bin": "60-70%"
+        },
+        {
+          "absolute_gap": 0.116829,
+          "actual_a_win_rate": 0.619048,
+          "mean_predicted_a": 0.735877,
+          "n": 21,
+          "probability_bin": "70-80%"
+        },
+        {
+          "absolute_gap": 0.317965,
+          "actual_a_win_rate": 0.5,
+          "mean_predicted_a": 0.817965,
+          "n": 4,
+          "probability_bin": "80-90%"
+        }
+      ],
+      "ece_10_bin": 0.07130699,
+      "log_loss": 0.68301407,
+      "n": 200,
+      "probability_distribution": {
+        "high_confidence_accuracy": 0.58333333,
+        "high_confidence_count": 24,
+        "maximum": 0.8420745,
+        "mean": 0.51066406,
+        "minimum": 0.09971818,
+        "standard_deviation": 0.15861942
+      }
+    },
+    "elo": {
+      "accuracy": 0.56,
+      "brier_score": 0.25231145,
+      "calibration": [
+        {
+          "absolute_gap": 0.084885,
+          "actual_a_win_rate": 0.25,
+          "mean_predicted_a": 0.165115,
+          "n": 8,
+          "probability_bin": "10-20%"
+        },
+        {
+          "absolute_gap": 0.024521,
+          "actual_a_win_rate": 0.266667,
+          "mean_predicted_a": 0.242146,
+          "n": 15,
+          "probability_bin": "20-30%"
+        },
+        {
+          "absolute_gap": 0.092756,
+          "actual_a_win_rate": 0.448276,
+          "mean_predicted_a": 0.35552,
+          "n": 29,
+          "probability_bin": "30-40%"
+        },
+        {
+          "absolute_gap": 0.006852,
+          "actual_a_win_rate": 0.447368,
+          "mean_predicted_a": 0.45422,
+          "n": 38,
+          "probability_bin": "40-50%"
+        },
+        {
+          "absolute_gap": 0.141708,
+          "actual_a_win_rate": 0.414634,
+          "mean_predicted_a": 0.556342,
+          "n": 41,
+          "probability_bin": "50-60%"
+        },
+        {
+          "absolute_gap": 0.021896,
+          "actual_a_win_rate": 0.627907,
+          "mean_predicted_a": 0.649803,
+          "n": 43,
+          "probability_bin": "60-70%"
+        },
+        {
+          "absolute_gap": 0.080773,
+          "actual_a_win_rate": 0.666667,
+          "mean_predicted_a": 0.747439,
+          "n": 18,
+          "probability_bin": "70-80%"
+        },
+        {
+          "absolute_gap": 0.570829,
+          "actual_a_win_rate": 0.25,
+          "mean_predicted_a": 0.820829,
+          "n": 8,
+          "probability_bin": "80-90%"
+        }
+      ],
+      "ece_10_bin": 0.08384642,
+      "log_loss": 0.70368711,
+      "n": 200,
+      "probability_distribution": {
+        "high_confidence_accuracy": 0.61764706,
+        "high_confidence_count": 34,
+        "maximum": 0.84448458,
+        "mean": 0.51647818,
+        "minimum": 0.10313041,
+        "standard_deviation": 0.16886151
+      }
+    },
+    "logistic_c1": {
+      "accuracy": 0.59,
+      "brier_score": 0.24303713,
+      "calibration": [
+        {
+          "absolute_gap": 0.17611,
+          "actual_a_win_rate": 0.0,
+          "mean_predicted_a": 0.17611,
+          "n": 3,
+          "probability_bin": "10-20%"
+        },
+        {
+          "absolute_gap": 0.161018,
+          "actual_a_win_rate": 0.416667,
+          "mean_predicted_a": 0.255649,
+          "n": 12,
+          "probability_bin": "20-30%"
+        },
+        {
+          "absolute_gap": 0.073459,
+          "actual_a_win_rate": 0.290323,
+          "mean_predicted_a": 0.363782,
+          "n": 31,
+          "probability_bin": "30-40%"
+        },
+        {
+          "absolute_gap": 0.01293,
+          "actual_a_win_rate": 0.434783,
+          "mean_predicted_a": 0.447712,
+          "n": 46,
+          "probability_bin": "40-50%"
+        },
+        {
+          "absolute_gap": 0.063792,
+          "actual_a_win_rate": 0.488889,
+          "mean_predicted_a": 0.552681,
+          "n": 45,
+          "probability_bin": "50-60%"
+        },
+        {
+          "absolute_gap": 0.028354,
+          "actual_a_win_rate": 0.617021,
+          "mean_predicted_a": 0.645375,
+          "n": 47,
+          "probability_bin": "60-70%"
+        },
+        {
+          "absolute_gap": 0.199435,
+          "actual_a_win_rate": 0.533333,
+          "mean_predicted_a": 0.732768,
+          "n": 15,
+          "probability_bin": "70-80%"
+        },
+        {
+          "absolute_gap": 0.18496,
+          "actual_a_win_rate": 1.0,
+          "mean_predicted_a": 0.81504,
+          "n": 1,
+          "probability_bin": "80-90%"
+        }
+      ],
+      "ece_10_bin": 0.06356157,
+      "log_loss": 0.67958743,
+      "n": 200,
+      "probability_distribution": {
+        "high_confidence_accuracy": 0.7,
+        "high_confidence_count": 10,
+        "maximum": 0.8150404,
+        "mean": 0.51238979,
+        "minimum": 0.15823172,
+        "standard_deviation": 0.13932748
+      }
+    }
+  },
+  "verdict": "INCONCLUSIVE",
+  "verdict_reasons": [
+    "C1 did not clear either the predeclared superiority rule or the joint inferiority rule.",
+    "The Champion comparison is a declared partial replay proxy because exact BP, true Patch, and several frozen factors are unavailable."
+  ],
+  "verdict_rule": {
+    "better": "Brier improves >=0.002 and Log Loss improves >=0.005 versus best baseline; Accuracy no worse by >0.01",
+    "otherwise": "INCONCLUSIVE",
+    "worse": "Brier worse >=0.002 and Log Loss worse >=0.005 versus best baseline"
+  }
+}

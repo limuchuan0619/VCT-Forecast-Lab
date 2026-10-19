@@ -187,6 +187,34 @@ CREATE TABLE IF NOT EXISTS source_records (
     PRIMARY KEY(source_id, entity_type, external_id)
 );
 
+CREATE TABLE IF NOT EXISTS result_candidates (
+    source_id TEXT NOT NULL,
+    external_match_id TEXT NOT NULL,
+    candidate_hash TEXT NOT NULL,
+    candidate_json TEXT NOT NULL,
+    first_seen_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    confirmation_count INTEGER NOT NULL DEFAULT 1,
+    status TEXT NOT NULL,
+    last_reason TEXT,
+    revision_no INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY(source_id, external_match_id)
+);
+
+CREATE TABLE IF NOT EXISTS result_candidate_revisions (
+    revision_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_id TEXT NOT NULL,
+    external_match_id TEXT NOT NULL,
+    revision_no INTEGER NOT NULL,
+    previous_hash TEXT NOT NULL,
+    previous_json TEXT NOT NULL,
+    replacement_hash TEXT NOT NULL,
+    replacement_json TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(source_id, external_match_id, revision_no)
+);
+
 CREATE TABLE IF NOT EXISTS import_conflicts (
     conflict_id INTEGER PRIMARY KEY AUTOINCREMENT,
     batch_id TEXT NOT NULL REFERENCES import_batches(batch_id),
@@ -404,6 +432,43 @@ CREATE TABLE IF NOT EXISTS challenger_predictions (
     CHECK(julianday(frozen_at) < julianday(scheduled_at))
 );
 
+CREATE TABLE IF NOT EXISTS challenger_settlement_revisions (
+    revision_id TEXT PRIMARY KEY,
+    shadow_prediction_id TEXT NOT NULL REFERENCES challenger_predictions(shadow_prediction_id),
+    revision_no INTEGER NOT NULL,
+    schema_version TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    previous_json TEXT NOT NULL,
+    corrected_json TEXT NOT NULL,
+    frozen_input_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(shadow_prediction_id, revision_no)
+);
+
+CREATE TRIGGER IF NOT EXISTS challenger_settlement_revision_update_guard
+BEFORE UPDATE ON challenger_settlement_revisions
+BEGIN
+    SELECT RAISE(ABORT, 'challenger_settlement_revision_append_only');
+END;
+CREATE TRIGGER IF NOT EXISTS challenger_settlement_revision_delete_guard
+BEFORE DELETE ON challenger_settlement_revisions
+BEGIN
+    SELECT RAISE(ABORT, 'challenger_settlement_revision_append_only');
+END;
+
+CREATE TABLE IF NOT EXISTS prediction_pairs (
+    fixture_id TEXT PRIMARY KEY REFERENCES fixtures(fixture_id) ON DELETE CASCADE,
+    champion_prediction_id TEXT REFERENCES predictions(prediction_id) ON DELETE CASCADE,
+    gold_snapshot_id TEXT REFERENCES prospective_snapshots(snapshot_id),
+    feature_snapshot_id TEXT REFERENCES challenger_feature_snapshots(snapshot_id),
+    gold_observed_at TEXT,
+    feature_cutoff_at TEXT,
+    prediction_created_at TEXT,
+    status TEXT NOT NULL CHECK(status IN ('PAIRED','PAIR_INCOMPLETE','C1_MISSING_PREMATCH_FREEZE')),
+    error_code TEXT,
+    updated_at TEXT NOT NULL
+);
+
 CREATE TRIGGER IF NOT EXISTS challenger_prediction_freeze_guard
 BEFORE UPDATE ON challenger_predictions
 WHEN NEW.fixture_id != OLD.fixture_id
@@ -431,8 +496,10 @@ CREATE INDEX IF NOT EXISTS idx_prospective_outcome_schedule ON prospective_snaps
 CREATE INDEX IF NOT EXISTS idx_automation_runs_started ON automation_runs(started_at);
 CREATE INDEX IF NOT EXISTS idx_challenger_status ON challenger_predictions(status, eligible, scheduled_at);
 CREATE INDEX IF NOT EXISTS idx_challenger_model ON challenger_predictions(challenger_model_id, status);
+CREATE INDEX IF NOT EXISTS idx_prediction_pairs_status ON prediction_pairs(status, updated_at);
 
 CREATE INDEX IF NOT EXISTS idx_source_records_batch ON source_records(batch_id);
+CREATE INDEX IF NOT EXISTS idx_result_candidates_status ON result_candidates(status, last_seen_at);
 CREATE INDEX IF NOT EXISTS idx_player_team_asof ON player_team_history(team_id, effective_from, effective_to);
 CREATE INDEX IF NOT EXISTS idx_match_player_stats_player ON match_player_stats(player_id, match_id);
 """
@@ -484,7 +551,7 @@ class Database:
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_predictions_fixture ON predictions(fixture_id) WHERE fixture_id IS NOT NULL"
             )
             conn.execute(
-                "INSERT OR REPLACE INTO metadata(key, value) VALUES('schema_version', '6')"
+                "INSERT OR REPLACE INTO metadata(key, value) VALUES('schema_version', '8')"
             )
 
     def config(self) -> dict[str, Any]:

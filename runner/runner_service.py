@@ -23,6 +23,8 @@ STOP = threading.Event()
 STATE_LOCK = threading.Lock()
 STATE: dict[str, Any] = {
     "status": "starting",
+    "runtimeStatus": "starting",
+    "evaluationIntegrity": {"status": "UNVERIFIED"},
     "startedAt": datetime.now(timezone.utc).isoformat(),
     "lastRun": None,
     "nextRunAt": None,
@@ -49,7 +51,7 @@ def settings() -> dict[str, Any]:
     return {
         "base_url": base_url,
         "database": Path(os.getenv("VCT_DB_PATH", "/data/vct.sqlite3")),
-        "raw_root": Path(os.getenv("VCT_RAW_ROOT", "/data/raw/vlr/daily")),
+        "raw_root": Path(os.getenv("VCT_RAW_ROOT", "/tmp/vct-raw/vlr/daily")),
         "interval": positive_int("VCT_RUN_INTERVAL_SECONDS", 7200, 900),
         "failure_retry": positive_int("VCT_FAILURE_RETRY_SECONDS", 900, 300),
         "horizon_hours": positive_int("VCT_HORIZON_HOURS", 48, 1),
@@ -69,8 +71,58 @@ def ensure_database(database: Path) -> None:
     temporary.replace(database)
 
 
+def prepare_raw_root(database: Path, raw_root: Path) -> bool:
+    """Reset ephemeral fetch evidence without ever deleting persistent volume data."""
+    persistent_root = database.parent.resolve()
+    target = raw_root.resolve()
+    ephemeral = target != persistent_root and persistent_root not in target.parents
+    if ephemeral and raw_root.exists():
+        shutil.rmtree(raw_root)
+    raw_root.mkdir(parents=True, exist_ok=True)
+    return ephemeral
+
+
+def storage_diagnostics(database: Path, raw_root: Path) -> dict[str, int | None]:
+    root = database.parent
+    try:
+        usage = shutil.disk_usage(root)
+    except OSError:
+        usage = None
+
+    raw_bytes = 0
+    raw_files = 0
+    try:
+        if raw_root.exists():
+            for item in raw_root.rglob("*"):
+                if item.is_file():
+                    raw_files += 1
+                    raw_bytes += item.stat().st_size
+    except OSError:
+        raw_bytes = -1
+        raw_files = -1
+
+    def file_size(path: Path) -> int:
+        try:
+            return path.stat().st_size if path.is_file() else 0
+        except OSError:
+            return -1
+
+    return {
+        "volumeTotalBytes": usage.total if usage else None,
+        "volumeUsedBytes": usage.used if usage else None,
+        "volumeFreeBytes": usage.free if usage else None,
+        "databaseBytes": file_size(database),
+        "databaseWalBytes": file_size(Path(f"{database}-wal")),
+        "databaseShmBytes": file_size(Path(f"{database}-shm")),
+        "rawSnapshotBytes": raw_bytes,
+        "rawSnapshotFiles": raw_files,
+    }
+
+
 def update_state(**values: Any) -> None:
     with STATE_LOCK:
+        if "status" in values:
+            values.setdefault("runtimeStatus", values["status"])
         STATE.update(values)
 
 
@@ -93,6 +145,7 @@ def run_cycle(config: dict[str, Any]) -> bool:
     started_at = now()
     update_state(status="running", lastRun={"startedAt": started_at, "status": "running"})
     try:
+        prepare_raw_root(config["database"], config["raw_root"])
         database = Database(config["database"])
         result = run_daily_automation(
             database,
@@ -102,9 +155,14 @@ def run_cycle(config: dict[str, Any]) -> bool:
         )
         sync = run_bridge(config["database"], config["base_url"])
         completed_at = now()
-        success = bool(result.get("ok"))
+        model_success = bool(result.get("ok"))
+        sync_status = str(sync.get("status") or ("SUCCESS" if sync.get("ok") else "FAILED"))
+        success = model_success and sync_status == "SUCCESS"
+        service_status = "healthy" if success else "failed" if sync_status == "FAILED" else "degraded"
         update_state(
-            status="healthy" if success else "degraded",
+            status=service_status,
+            runtimeStatus=service_status,
+            evaluationIntegrity=result.get("challenger_evaluation", {}).get("metric_integrity", {"status": "UNVERIFIED"}),
             lastRun={
                 "startedAt": started_at,
                 "completedAt": completed_at,
@@ -113,13 +171,17 @@ def run_cycle(config: dict[str, Any]) -> bool:
                 "counters": {key: value for key, value in result.items() if key not in {"errors"}},
                 "errors": result.get("errors", []),
                 "publicSync": sync,
+                "storage": storage_diagnostics(config["database"], config["raw_root"]),
             },
         )
         print(json.dumps({"event": "cycle_complete", "at": completed_at, "result": result, "sync": sync}, ensure_ascii=False), flush=True)
         return success
     except Exception as error:
         failed_at = now()
-        update_state(status="failed", lastRun={"startedAt": started_at, "completedAt": failed_at, "status": "failed", "error": str(error)})
+        update_state(status="failed", lastRun={
+            "startedAt": started_at, "completedAt": failed_at, "status": "failed", "error": str(error),
+            "storage": storage_diagnostics(config["database"], config["raw_root"]),
+        })
         print(json.dumps({"event": "cycle_failed", "at": failed_at, "error": str(error)}, ensure_ascii=False), file=sys.stderr, flush=True)
         return False
 

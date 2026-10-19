@@ -10,14 +10,18 @@ import argparse
 import json
 import math
 import os
+import re
 import sqlite3
 import sys
+import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+from vct_prediction.sources.vlr import _complete_competitive_map_score
 
 
 MAP_NAMES = {
@@ -33,6 +37,7 @@ MAP_NAMES = {
     "pearl": "深海明珠",
     "split": "霓虹町",
     "sunset": "日落之城",
+    "summit": "天枢云阙",
 }
 
 FACTOR_LABELS = {
@@ -108,6 +113,8 @@ def maps(value: str | None) -> list[dict[str, Any]]:
             "map": name,
             "teamAProbability": probability_a,
             "teamBProbability": 1.0 - probability_a,
+            **({"teamAMapRating": float(item["team_a_map_rating"])} if isinstance(item.get("team_a_map_rating"), (int, float)) else {}),
+            **({"teamBMapRating": float(item["team_b_map_rating"])} if isinstance(item.get("team_b_map_rating"), (int, float)) else {}),
             **({"samples": [int(samples[0]), int(samples[1])]} if isinstance(samples, list) and len(samples) == 2 else {}),
         })
     return result
@@ -158,14 +165,92 @@ def prediction_payload(row: sqlite3.Row) -> dict[str, Any]:
     }
 
 
-def resolved_payload(row: sqlite3.Row) -> dict[str, Any] | None:
+def resolved_payload(connection: sqlite3.Connection, row: sqlite3.Row) -> dict[str, Any] | None:
     if row["status"] != "resolved" or not row["actual_winner_name"] or not row["actual_score"]:
         return None
+    map_rows = connection.execute(
+        """SELECT map_order,map_id,team_a_rounds,team_b_rounds
+           FROM map_results WHERE match_id=? ORDER BY map_order""",
+        (row["resolved_match_id"],),
+    ).fetchall() if row["resolved_match_id"] else []
+    # Old production databases can contain maps captured while a match page was
+    # still live.  Never redeliver those partial scores as immutable evidence.
+    # New collection already rejects them at parse time; this is a read-only
+    # compatibility guard for rows created before that fix.
+    if any(
+        not _complete_competitive_map_score(
+            int(item["team_a_rounds"]), int(item["team_b_rounds"])
+        )
+        for item in map_rows
+    ):
+        return None
+    score_match = re.match(r"^(\d+)-(\d+)$", str(row["actual_score"]))
+    if not map_rows or not score_match:
+        return None
+    expected_series = (int(score_match.group(1)), int(score_match.group(2)))
+    reconstructed_series = (
+        sum(int(item["team_a_rounds"]) > int(item["team_b_rounds"]) for item in map_rows),
+        sum(int(item["team_b_rounds"]) > int(item["team_a_rounds"]) for item in map_rows),
+    )
+    if reconstructed_series != expected_series:
+        return None
+    player_rows = connection.execute(
+        """SELECT map_order,player_id,player_name,team_id,agent,rating,acs,kills,deaths,assists,kast,adr,hs_pct,first_kills,first_deaths
+           FROM match_player_stats WHERE match_id=? ORDER BY map_order,team_id,player_id""",
+        (row["resolved_match_id"],),
+    ).fetchall() if row["resolved_match_id"] else []
+    # The source result insertion timestamp is immutable. Review generation can
+    # occur again on every cycle and must never drift the frozen evidence hash.
+    captured_at = iso(row["result_inserted_at"] or row["review_generated_at"]) or iso(datetime.now(timezone.utc).isoformat())
+    if captured_at and captured_at < iso(row["scheduled_at"]):
+        captured_at = iso(datetime.now(timezone.utc).isoformat())
+    actual_maps = []
+    for item in map_rows:
+        score_a, score_b = int(item["team_a_rounds"]), int(item["team_b_rounds"])
+        map_id = str(item["map_id"]).lower()
+        actual_maps.append({
+            "order": int(item["map_order"]),
+            "map": MAP_NAMES.get(map_id, str(item["map_id"])),
+            "teamAScore": score_a,
+            "teamBScore": score_b,
+            "winner": row["team_a_name"] if score_a > score_b else row["team_b_name"],
+            "sourceUrl": row["result_source_url"],
+            "missingFields": ["attack_defense"],
+        })
+    player_stats = [
+        {
+            "mapOrder": int(item["map_order"]), "playerId": item["player_id"], "player": item["player_name"],
+            "teamId": item["team_id"], "agent": item["agent"], "rating": item["rating"], "acs": item["acs"],
+            "kills": item["kills"], "deaths": item["deaths"], "assists": item["assists"], "kast": item["kast"],
+            "adr": item["adr"], "hsPct": item["hs_pct"], "firstKills": item["first_kills"], "firstDeaths": item["first_deaths"],
+        }
+        for item in player_rows
+    ] or None
     return {
         "predictionId": row["prediction_id"],
         "actualWinner": row["actual_winner_name"],
         "actualScore": row["actual_score"],
-        "resolvedAt": iso(row["result_played_at"] or row["scheduled_at"]),
+        # Settlement time is when the completed result was observed, not the source's
+        # match-start timestamp.  The latter can legitimately predate a rescheduled fixture.
+        "resolvedAt": captured_at,
+        "resultEvidence": {
+            "schemaVersion": "v1.4c-r1-result-evidence-v1",
+            "source": {
+                "sourceId": "vlr", "sourceUrl": row["result_source_url"],
+                "sourceMatchId": row["resolved_match_id"], "capturedAt": captured_at,
+            },
+            "series": {
+                "actualWinner": row["actual_winner_name"], "actualScore": row["actual_score"],
+                "scheduledAt": iso(row["scheduled_at"]), "playedAt": iso(row["result_played_at"]),
+                "seriesFormat": row["series_format"],
+            },
+            "maps": actual_maps,
+            "playerStats": player_stats,
+            "missing": {
+                "maps": not bool(actual_maps), "playerStats": player_stats is None,
+                "attackDefense": True, "veto": True,
+            },
+        },
     }
 
 
@@ -249,7 +334,9 @@ def rows_from_database(connection: sqlite3.Connection, source: str, limit: int |
     elif source == "human":
         where = "WHERE p.source LIKE 'human%'"
     sql = f"""SELECT p.*, ta.name AS team_a_name, tb.name AS team_b_name,
-      aw.name AS actual_winner_name, m.played_at AS result_played_at, m.source_url AS result_source_url
+      aw.name AS actual_winner_name, m.played_at AS result_played_at, m.source_url AS result_source_url,
+      m.inserted_at AS result_inserted_at, p.resolved_match_id,
+      (SELECT generated_at FROM prediction_reviews r WHERE r.prediction_id=p.prediction_id LIMIT 1) AS review_generated_at
       FROM predictions p
       JOIN teams ta ON ta.team_id=p.team_a_id
       JOIN teams tb ON tb.team_id=p.team_b_id
@@ -274,18 +361,20 @@ def state_payload(connection: sqlite3.Connection, rows: list[sqlite3.Row]) -> di
         """SELECT run_id, run_type, status, started_at, completed_at, counters_json, error
            FROM automation_runs ORDER BY datetime(started_at) DESC LIMIT 1"""
     ).fetchone()
+    counters = json.loads(latest_run["counters_json"] or "{}") if latest_run else {}
     learning = connection.execute(
         """SELECT COUNT(*) snapshots, COUNT(DISTINCT fixture_id) fixtures,
            SUM(CASE WHEN quality_status IN ('ready','locked') THEN 1 ELSE 0 END) ready,
            SUM(CASE WHEN quality_status NOT IN ('ready','locked') THEN 1 ELSE 0 END) blocked,
            COUNT(DISTINCT CASE WHEN outcome_status='resolved' THEN fixture_id END) labeled,
            COUNT(DISTINCT CASE WHEN outcome_status='pending' THEN fixture_id END) pending,
-           COUNT(DISTINCT CASE WHEN outcome_status='resolved' AND quality_status IN ('ready','locked') THEN fixture_id END) eligible,
+           COUNT(DISTINCT CASE WHEN outcome_status='resolved' AND quality_status IN ('ready','locked')
+             AND COALESCE(json_extract(snapshot_json,'$.classification'),'regional') IN ('regional','international') THEN fixture_id END) eligible,
            MIN(observed_at) started_at FROM prospective_snapshots"""
     ).fetchone()
     shadow_rows = challenger_rows_from_database(connection)
     eligible_shadow = [row for row in shadow_rows if row["status"] == "resolved" and row["eligible"] and row["record_kind"] == "real_prospective"]
-    shadow_count = len(eligible_shadow)
+    shadow_count = int(counters.get("challenger_evaluation", {}).get("eligible_resolved_matches", len(eligible_shadow)))
     shadow_phase = "ACCUMULATING" if shadow_count < 30 else "PRELIMINARY" if shadow_count < 50 else "EVALUATING" if shadow_count < 100 else "GATE_READY"
     return {
         "coverage": {
@@ -318,18 +407,24 @@ def state_payload(connection: sqlite3.Connection, rows: list[sqlite3.Row]) -> di
             "startedAt": iso(learning["started_at"]) if learning["started_at"] else None,
             "snapshots": int(learning["snapshots"] or 0),
             "fixtures": int(learning["fixtures"] or 0),
+            "snapshotObservations": int(learning["snapshots"] or 0),
+            "fixtureCoverage": int(learning["fixtures"] or 0),
             "ready": int(learning["ready"] or 0),
             "blocked": int(learning["blocked"] or 0),
             "labeled": int(learning["labeled"] or 0),
             "pending": int(learning["pending"] or 0),
             "trainingEligible": int(learning["eligible"] or 0),
             "trainingGate": 100,
+            "primaryCompetitionOnly": True,
+            "competitionCoverage": counters.get("fixtures_by_competition", {}),
         },
         "challenger": {
             "modelId": "logistic_c1_v1.4b_20260903", "status": "SHADOW", "phase": shadow_phase,
             "eligibleResolvedMatches": shadow_count, "gate": 100,
             "promotionStatus": "EVALUATING" if shadow_count < 100 else "GATE_READY", "promotionEnabled": False,
             "historicalEvaluationIncluded": False,
+            "metricIntegrity": counters.get("challenger_evaluation", {}).get("metric_integrity", {"status": "UNVERIFIED"}),
+            "metrics": counters.get("challenger_evaluation", {}).get("metrics"),
         },
     }
 
@@ -375,6 +470,105 @@ def parser() -> argparse.ArgumentParser:
     return result
 
 
+def synchronize(
+    connection: sqlite3.Connection,
+    *,
+    base_url: str,
+    key: str,
+    source: str,
+    limit: int | None,
+    ai_timeout: int,
+    poster: Any = post_json,
+    sync_run_id: str | None = None,
+) -> dict[str, Any]:
+    rows = rows_from_database(connection, source, limit)
+    challenger_rows = challenger_rows_from_database(connection)
+    state = state_payload(connection, rows)
+    sync_run_id = sync_run_id or f"public-sync-{uuid.uuid4().hex}"
+    started_at = iso(datetime.now(timezone.utc).isoformat())
+    runner_run_id = state.get("run", {}).get("id") if state.get("run") else None
+    poster(base_url, "/api/automation/sync-runs", key, {
+        "syncRunId": sync_run_id, "runnerRunId": runner_run_id,
+        "status": "RUNNING", "startedAt": started_at,
+    })
+    counters: dict[str, dict[str, int]] = {
+        name: {"attempted": 0, "succeeded": 0, "failed": 0}
+        for name in ("predictions", "challengers", "results", "ai_jobs", "state")
+    }
+    failures: list[dict[str, str]] = []
+
+    def attempt(kind: str, item_id: str, path: str, payload: dict[str, Any], timeout_seconds: int = 30) -> None:
+        counters[kind]["attempted"] += 1
+        try:
+            poster(base_url, path, key, {**payload, "syncRunId": sync_run_id}, timeout_seconds=timeout_seconds)
+            counters[kind]["succeeded"] += 1
+        except Exception as exc:
+            counters[kind]["failed"] += 1
+            failures.append({"type": kind, "id": item_id, "error": f"{type(exc).__name__}:{exc}"[:512]})
+
+    def attempt_result(item_id: str, payload: dict[str, Any]) -> None:
+        counters["results"]["attempted"] += 1
+        try:
+            poster(base_url, "/api/automation/results", key, {**payload, "syncRunId": sync_run_id}, timeout_seconds=ai_timeout)
+            counters["results"]["succeeded"] += 1
+        except Exception as exc:
+            message = f"{type(exc).__name__}:{exc}"
+            if "HTTP 409" in message and ("result_conflict" in message or "result_evidence_conflict" in message):
+                try:
+                    poster(base_url, "/api/automation/result-corrections", key, {
+                        **payload, "syncRunId": sync_run_id,
+                        "reason": "SOURCE_PAGE_STABILIZED_AFTER_PREMATURE_CAPTURE",
+                    }, timeout_seconds=ai_timeout)
+                    counters["results"]["succeeded"] += 1
+                    return
+                except Exception as correction_error:
+                    message = f"{type(correction_error).__name__}:{correction_error}"
+            counters["results"]["failed"] += 1
+            failures.append({"type": "results", "id": item_id, "error": message[:512]})
+
+    challengers = {row["champion_prediction_id"]: row for row in challenger_rows}
+    for row in rows:
+        prediction_id = str(row["prediction_id"])
+        attempt(
+            "predictions", prediction_id, "/api/automation/predictions",
+            {"prediction": prediction_payload(row)}, ai_timeout,
+        )
+        challenger = challengers.get(row["prediction_id"])
+        if challenger:
+            attempt(
+                "challengers", str(challenger["shadow_prediction_id"]), "/api/automation/challengers",
+                {"challenger": challenger_payload(challenger)},
+            )
+        result = resolved_payload(connection, row)
+        if result:
+            attempt_result(prediction_id, result)
+    # Bounded batches keep every request under the provider timeout while allowing
+    # an initial deployment to reconcile all existing settled predictions. Empty
+    # follow-up batches are cheap and future cycles normally find no due work.
+    for batch in range(1, 4):
+        attempt("ai_jobs", f"postmatch-{batch}", "/api/automation/ai/jobs", {"limit": 3}, ai_timeout)
+    attempt("state", "current", "/api/automation/state", state)
+
+    total_succeeded = sum(value["succeeded"] for value in counters.values())
+    total_failed = sum(value["failed"] for value in counters.values())
+    status = "SUCCESS" if total_failed == 0 else "FAILED" if total_succeeded == 0 else "DEGRADED"
+    completed_at = iso(datetime.now(timezone.utc).isoformat())
+    poster(base_url, "/api/automation/sync-runs", key, {
+        "syncRunId": sync_run_id, "runnerRunId": runner_run_id, "status": status,
+        "startedAt": started_at, "completedAt": completed_at, "counters": counters,
+        "failures": failures[:200], "errorCode": failures[0]["error"] if failures else None,
+    })
+    return {
+        "ok": status == "SUCCESS", "status": status, "syncRunId": sync_run_id,
+        "baseUrl": base_url, "source": source, "counters": counters,
+        "failures": failures[:200],
+        "predictions": counters["predictions"]["succeeded"],
+        "challengers": counters["challengers"]["succeeded"],
+        "results": counters["results"]["succeeded"],
+        "state": counters["state"]["succeeded"],
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     if not 30 <= args.ai_timeout <= 600:
@@ -384,7 +578,6 @@ def main(argv: list[str] | None = None) -> int:
     connection = sqlite3.connect(f"file:{args.database.as_posix()}?mode=ro", uri=True)
     connection.row_factory = sqlite3.Row
     rows = rows_from_database(connection, args.source, args.limit)
-    challenger_rows = challenger_rows_from_database(connection)
     state = state_payload(connection, rows)
     if args.dry_run:
         sample = prediction_payload(rows[-1]) if rows else None
@@ -393,33 +586,11 @@ def main(argv: list[str] | None = None) -> int:
     key = os.environ.get(args.key_env)
     if not key:
         raise SystemExit(f"缺少环境变量：{args.key_env}")
-    post_json(args.base_url, "/api/automation/state", key, state)
-    counters = {"state": 1, "predictions": 0, "challengers": 0, "results": 0}
-    challengers = {row["champion_prediction_id"]: row for row in challenger_rows}
-    for row in rows:
-        post_json(
-            args.base_url,
-            "/api/automation/predictions",
-            key,
-            {"prediction": prediction_payload(row)},
-            timeout_seconds=args.ai_timeout,
-        )
-        counters["predictions"] += 1
-        challenger = challengers.get(row["prediction_id"])
-        if challenger:
-            post_json(args.base_url, "/api/automation/challengers", key, {"challenger": challenger_payload(challenger)})
-            counters["challengers"] += 1
-        result = resolved_payload(row)
-        if result:
-            post_json(
-                args.base_url,
-                "/api/automation/results",
-                key,
-                result,
-                timeout_seconds=args.ai_timeout,
-            )
-            counters["results"] += 1
-    print(json.dumps({"ok": True, "baseUrl": args.base_url, "source": args.source, **counters}, ensure_ascii=False, indent=2))
+    result = synchronize(
+        connection, base_url=args.base_url, key=key, source=args.source,
+        limit=args.limit, ai_timeout=args.ai_timeout,
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
 

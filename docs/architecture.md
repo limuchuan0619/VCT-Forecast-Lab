@@ -4,7 +4,7 @@ VCT Forecast Lab separates forecasting, unattended execution and public presenta
 
 ## System view
 
-\`\`\`mermaid
+```mermaid
 flowchart LR
     subgraph Model["Model Layer"]
         DB[(SQLite source history)]
@@ -49,7 +49,7 @@ flowchart LR
     FR --> D1
     ST --> D1
     D1 --> DS
-\`\`\`
+```
 
 ## 1. Model layer
 

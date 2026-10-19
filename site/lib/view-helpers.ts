@@ -21,10 +21,24 @@ export function chinaTime(value: string): string {
 }
 
 export function regionLabel(region: string): string {
-  return ({ CN: '中国', EMEA: '欧洲', AMERICAS: '美洲', PACIFIC: '太平洋' } as Record<string, string>)[region] ?? region;
+  return (
+    (
+      {
+        CN: '中国',
+        EMEA: '欧洲',
+        AMERICAS: '美洲',
+        PACIFIC: '太平洋',
+        INTERNATIONAL: '国际赛事',
+      } as Record<string, string>
+    )[region] ?? '其他赛事'
+  );
 }
 
-export function predictionWinner(teamA: string, teamB: string, teamAProbability: number): string {
+export function predictionWinner(
+  teamA: string,
+  teamB: string,
+  teamAProbability: number,
+): string {
   return teamAProbability >= 0.5 ? teamA : teamB;
 }
 
@@ -34,17 +48,33 @@ export type LifecycleStep = {
   state: 'complete' | 'current' | 'pending';
 };
 
-export function predictionLifecycle(record: PredictionRecord, now = Date.now()): { label: string; steps: LifecycleStep[] } {
+export function predictionLifecycle(
+  record: PredictionRecord,
+  now = Date.now(),
+): { label: string; steps: LifecycleStep[] } {
   const resolved = record.status === 'resolved';
   const reviewComplete = Boolean(record.postmatchReview);
   const started = Date.parse(record.scheduledAt) <= now;
+  const quality = terminology('qualityGate', record.evidence.qualityGate);
+  const aiState = terminology(
+    'aiStatus',
+    record.postmatchAiStatus ?? 'waiting',
+  );
   if (!record.source.startsWith('system')) {
     return {
       label: '历史人工档案',
       steps: [
         { label: '赛前判断', detail: '保留原始概率', state: 'complete' },
-        { label: '结果入库', detail: resolved ? '实际赛果已保存' : '等待实际赛果', state: resolved ? 'complete' : 'current' },
-        { label: '历史归档', detail: '不补造系统变量', state: resolved ? 'complete' : 'pending' },
+        {
+          label: '结果入库',
+          detail: resolved ? '实际赛果已保存' : '等待实际赛果',
+          state: resolved ? 'complete' : 'current',
+        },
+        {
+          label: '历史归档',
+          detail: '不补造系统变量',
+          state: resolved ? 'complete' : 'pending',
+        },
         { label: '自动复盘', detail: '旧记录无赛前系统快照', state: 'pending' },
       ],
     };
@@ -58,16 +88,28 @@ export function predictionLifecycle(record: PredictionRecord, now = Date.now()):
           ? '等待赛果同步'
           : '赛前已锁定，等待开赛',
     steps: [
-      { label: '数据质检', detail: record.evidence.qualityGate, state: 'complete' },
-      { label: '赛前锁定', detail: chinaTime(record.lockedAt), state: 'complete' },
+      { label: '数据质检', detail: quality.label, state: 'complete' },
+      {
+        label: '赛前锁定',
+        detail: chinaTime(record.lockedAt),
+        state: 'complete',
+      },
       {
         label: '结果同步',
-        detail: resolved ? `${record.actualWinner} ${record.actualScore}` : started ? '等待来源确认' : '等待比赛开始',
+        detail: resolved
+          ? `${record.actualWinner} ${record.actualScore}`
+          : started
+            ? '等待来源确认'
+            : '等待比赛开始',
         state: resolved ? 'complete' : 'current',
       },
       {
         label: 'AI 复盘',
-        detail: reviewComplete ? '复盘已保存' : resolved ? `状态 ${record.postmatchAiStatus ?? '等待生成'}` : '赛果入库后启动',
+        detail: reviewComplete
+          ? '复盘已保存'
+          : resolved
+            ? aiState.label
+            : '赛果入库后启动',
         state: reviewComplete ? 'complete' : resolved ? 'current' : 'pending',
       },
     ],
@@ -78,4 +120,5 @@ export function intervalLabel(seconds: number): string {
   if (seconds % 3600 === 0) return `每 ${seconds / 3600} 小时`;
   return `每 ${Math.round(seconds / 60)} 分钟`;
 }
+import { terminology } from './terminology';
 import type { PredictionRecord } from './vct-types';

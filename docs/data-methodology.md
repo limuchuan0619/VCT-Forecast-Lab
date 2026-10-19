@@ -6,7 +6,7 @@ The central data problem is not merely whether a field exists today. It is wheth
 
 The internal normalized model is:
 
-\`\`\`text
+```text
 Event
 └── Match
     ├── teams, time, format and result
@@ -16,7 +16,7 @@ Event
             ├── agent
             ├── ACS / ADR / KAST
             └── K / D / A / FK / FD
-\`\`\`
+```
 
 VLR is treated as a community secondary source. The production system retains provenance and content hashes, but this public repository does not redistribute the historical archive.
 
@@ -24,9 +24,9 @@ VLR is treated as a community secondary source. The production system retains pr
 
 For target match **T**, every dynamic feature must satisfy:
 
-\`\`\`text
+```text
 source_time < target_match_time
-\`\`\`
+```
 
 The target match itself and all later events are forbidden. Equality is also forbidden because a snapshot observed at the target timestamp may already contain the target result.
 
@@ -59,11 +59,11 @@ The expanded V1.4B dataset also retained KAST and player-rating differences when
 
 The roster for Match T is the most recently observed roster before T:
 
-\`\`\`text
+```text
 Observed roster at T-1
         ↓
 Feature snapshot for T
-\`\`\`
+```
 
 The actual five players who appear in Match T are not treated as pre-match evidence unless they had already been observed in a prior match. This is conservative, but it avoids learning from information confirmed only after play began.
 

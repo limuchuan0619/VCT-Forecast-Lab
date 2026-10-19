@@ -65,7 +65,7 @@ This is not a fact or a causal conclusion. It is a candidate for a future, separ
 
 ## Diagnosis flow
 
-\`\`\`mermaid
+```mermaid
 sequenceDiagram
     participant R as Result importer
     participant D as D1 ledger
@@ -78,7 +78,7 @@ sequenceDiagram
     else analysis fails
         R->>D: Store failed_non_blocking
     end
-\`\`\`
+```
 
 Settlement occurs before the optional AI call. A timeout or provider error cannot erase or block the model result.
 

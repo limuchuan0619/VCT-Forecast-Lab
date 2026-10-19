@@ -12,12 +12,13 @@ import json
 import re
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import urljoin
 
 from ..constants import normalize_map
+from ..competition import COVERAGE_VERSION, REGION_FILTERS, event_policy, flag_region
 
 
 BASE_URL = "https://www.vlr.gg"
@@ -76,6 +77,49 @@ def _number(value: str | None, *, percent: bool = False) -> float | None:
 def _integer(value: str | None) -> int | None:
     number = _number(value)
     return int(number) if number is not None else None
+
+
+def _complete_competitive_map_score(team_a_rounds: int, team_b_rounds: int) -> bool:
+    """Return whether a VCT map score is terminal under standard win-by-two rules.
+
+    VLR can expose a series-level winner while the final map panels are still
+    updating. Merely counting the currently leading team as the map winner can
+    therefore turn a live 6-3 or 4-1 panel into a false completed result.
+    """
+    winner = max(team_a_rounds, team_b_rounds)
+    loser = min(team_a_rounds, team_b_rounds)
+    if loser < 0 or winner < 13:
+        return False
+    return loser <= 11 if winner == 13 else winner - loser == 2
+
+
+def validate_series_finality(
+    series_format: str,
+    source_status: str,
+    source_score: tuple[int, int] | None,
+    maps: list[dict[str, Any]],
+) -> tuple[str, str | None]:
+    """Deterministically prove a normal VCT series is final and self-consistent."""
+    if source_status.strip().lower() != "final":
+        return "REVISION_PENDING", "source_status_not_final"
+    wins_needed = 3 if series_format == "bo5" else 2
+    if not maps:
+        return "REVISION_PENDING", "map_evidence_missing"
+    for index, item in enumerate(maps, start=1):
+        if int(item.get("map_order", 0)) != index:
+            return "RESULT_INCONSISTENT", "map_order_inconsistent"
+        if not _complete_competitive_map_score(int(item["team_a_rounds"]), int(item["team_b_rounds"])):
+            return "REVISION_PENDING", "incomplete_map_score"
+    team_a_maps = sum(int(item["team_a_rounds"]) > int(item["team_b_rounds"]) for item in maps)
+    team_b_maps = len(maps) - team_a_maps
+    reconstructed = (team_a_maps, team_b_maps)
+    if max(reconstructed) != wins_needed or min(reconstructed) >= wins_needed:
+        return "REVISION_PENDING", "series_not_terminal"
+    if source_score is None:
+        return "REVISION_PENDING", "source_series_score_missing"
+    if source_score != reconstructed:
+        return "RESULT_INCONSISTENT", "source_map_series_conflict"
+    return "FINAL_CANDIDATE", None
 
 
 def _year(title: str) -> int | None:
@@ -143,6 +187,10 @@ class VlrClient:
         self.retry_delays = tuple(max(0.0, float(item)) for item in retry_delays)
         self.retry_count = 0
         self.retry_log: list[dict[str, Any]] = []
+        self.link_observations: dict[str, dict[str, Any]] = {}
+        self.discovery_report: dict[str, Any] = {}
+        self._response_cache: dict[str, FetchResult] = {}
+        self._cache_responses = False
         self.client = httpx.Client(
             headers={"User-Agent": USER_AGENT},
             timeout=30,
@@ -155,6 +203,8 @@ class VlrClient:
 
     def fetch(self, path_or_url: str) -> FetchResult:
         url = path_or_url if path_or_url.startswith("http") else urljoin(BASE_URL, path_or_url)
+        if self._cache_responses and url in self._response_cache:
+            return self._response_cache[url]
         response = None
         last_error: Exception | None = None
         attempts = len(self.retry_delays) + 1
@@ -191,13 +241,16 @@ class VlrClient:
         raw_path = self.snapshot_root / raw_name
         if not raw_path.exists():
             raw_path.write_bytes(response.content)
-        return FetchResult(
+        result = FetchResult(
             url=str(response.url),
             text=response.text,
             fetched_at=_now(),
             content_hash=content_hash,
             raw_path=str(raw_path),
         )
+        if self._cache_responses:
+            self._response_cache[url] = result
+        return result
 
     def soup(self, result: FetchResult):
         return self.BeautifulSoup(result.text, "html.parser")
@@ -242,6 +295,77 @@ class VlrClient:
                 raise RuntimeError("VLR 赛事分页超过安全上限 20 页")
         return sorted(events.values(), key=lambda item: (item["year"], item["external_event_id"]))
 
+    def discover_live_events(self, now: datetime) -> list[dict[str, Any]]:
+        """Five bounded all-tier indexes; never walk the historical pagination.
+
+        Active future seasons/yearless events are retained. Region query IDs are
+        taken from source navigation, not inferred from a URL path like /china/.
+        """
+        events: dict[str, dict[str, Any]] = {}
+        self._cache_responses = True
+        report: dict[str, Any] = {"schema_version": COVERAGE_VERSION, "index_requests": 0,
+            "regions_checked": [], "index_failures": [], "historical_pages_followed": 0}
+        indexes = [("OTHER", "/events/?region=all&tier=all")]
+        indexes += [(region, f"/events/?region={identifier}&tier=all") for region, identifier in REGION_FILTERS]
+        for region, path in indexes:
+            report["index_requests"] += 1
+            try:
+                result = self.fetch(path)
+                soup = self.soup(result)
+                if not soup.select("a.event-item"):
+                    # Empty regional calendars are valid only with recognizable navigation.
+                    if not soup.select("a[href*='region=']"):
+                        raise ValueError("event_index_structure_unrecognized")
+                if region != "OTHER":
+                    report["regions_checked"].append(region)
+                for item in soup.select("a.event-item[href^='/event/']"):
+                    match = re.match(r"/event/(\d+)/([^/?#]+)", item.get("href", ""))
+                    title_node = item.select_one(".event-item-title")
+                    if not match or not title_node:
+                        continue
+                    title = _clean(title_node.get_text(" ", strip=True))
+                    status_node = item.select_one(".event-item-desc-item-status")
+                    status = _clean(status_node.get_text(" ", strip=True) if status_node else "unknown").lower()
+                    flag = item.select_one(".mod-location .flag")
+                    country = next((c[4:] for c in (flag.get("class", []) if flag else []) if c.startswith("mod-")), "")
+                    hint = region if region != "OTHER" else flag_region(country)
+                    policy = event_policy(title, hint)
+                    date_node = item.select_one(".mod-dates")
+                    date_text = _clean(date_node.get_text(" ", strip=True) if date_node else "")
+                    recent = self._recent_completed_event(date_text, _year(title), now)
+                    value = {"external_event_id": match.group(1), "slug": match.group(2), "name": title,
+                        "year": _year(title), "status": status, "source_dates": date_text,
+                        "source_country_flag": country, "source_url": urljoin(BASE_URL,item["href"]),
+                        "fetched_at":result.fetched_at,"raw_path":result.raw_path,"content_hash":result.content_hash,
+                        "scan_matches": status in {"upcoming", "ongoing"} or (status == "completed" and recent), **policy}
+                    previous = events.get(match.group(1))
+                    # An explicit source-region index may resolve a yearless/global unknown.
+                    if previous is None or (previous["region"] == "OTHER" and value["region"] != "OTHER"):
+                        events[match.group(1)] = value
+            except Exception as exc:
+                report["index_failures"].append({"region":region,"url":urljoin(BASE_URL,path),"error":str(exc)[:250]})
+        report["events_discovered"] = len(events)
+        report["indexes_complete"] = not report["index_failures"] and len(report["regions_checked"]) == 4
+        report["coverage_scope"] = "first_page_active_and_recent_source_events_not_all_real_world_matches"
+        self.discovery_report = report
+        return sorted(events.values(),key=lambda e: (0 if e["region"] == "CN" else 1, not e["scan_matches"], e["name"],e["external_event_id"]))
+
+    @staticmethod
+    def _recent_completed_event(text: str, year: int | None, now: datetime) -> bool:
+        parts = re.findall(r"\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})",text,re.I)
+        if not parts:
+            return False
+        month, day = parts[-1]
+        # A same-month range such as Oct 17–19 uses its trailing day.
+        trailing = re.search(r"[–—-]\s*(\d{1,2})(?:\s+Dates)?\s*$",text)
+        if trailing:
+            day=trailing.group(1)
+        try:
+            end=datetime.strptime(f"{year or now.year} {month} {day}","%Y %b %d").replace(tzinfo=timezone.utc)
+            return -1 <= (now-end).total_seconds()/86400 <= 7
+        except ValueError:
+            return False
+
     def event_match_links(self, event: dict[str, Any]) -> tuple[list[str], FetchResult]:
         path = f"/event/matches/{event['external_event_id']}/{event['slug']}/?series_id=all"
         result = self.fetch(path)
@@ -251,6 +375,12 @@ class VlrClient:
             href = item.get("href", "")
             if re.match(r"/\d+/", href) and href not in links:
                 links.append(href)
+                names=[_clean(n.get_text(" ",strip=True)) for n in item.select(".match-item-vs-team-name")]
+                status_node=item.select_one(".ml-status")
+                self.link_observations[href] = {"source_url":urljoin(BASE_URL,href),"content_hash":result.content_hash,
+                    "raw_path":result.raw_path,"fetched_at":result.fetched_at,
+                    "source_status":_clean(status_node.get_text(" ",strip=True) if status_node else "").casefold(),
+                    "unresolved_teams": bool(names) and all(n.casefold() in {"tbd","tba","-",""} for n in names)}
         return links, result
 
     def parse_fixture(self, href: str, event: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, Any]]:
@@ -302,6 +432,8 @@ class VlrClient:
             "event": event["name"],
             "region": event["region"],
             "classification": event["classification"],
+            "competition_policy": event.get("prediction_policy","quality_gate_required"),
+            "evaluation_cohort": event.get("evaluation_cohort",event["classification"]),
             "stage": _clean(stage_node.get_text(" ", strip=True) if stage_node else None),
             "scheduled_at": scheduled_at,
             "series_format": f"bo{format_match.group(1)}".lower(),
@@ -348,6 +480,11 @@ class VlrClient:
             return None, {**issue, "reason": "played_at_missing"}
         played_at = datetime.strptime(date_node["data-utc-ts"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc).isoformat()
         vs_text = _clean(soup.select_one(".match-header-vs-score").get_text(" ", strip=True) if soup.select_one(".match-header-vs-score") else None)
+        notes = [_clean(node.get_text(" ", strip=True)) for node in soup.select(".match-header-vs-note")]
+        source_status = next((note for note in notes if note.lower() in {"final", "completed"}), "")
+        score_node = soup.select_one(".match-header-vs-score .sp-hide")
+        source_numbers = [int(value) for value in re.findall(r"\d+", _clean(score_node.get_text(" ", strip=True) if score_node else None))]
+        source_score = (source_numbers[0], source_numbers[1]) if len(source_numbers) >= 2 else None
         format_match = re.search(r"Bo([35])", vs_text, re.I)
         if not format_match:
             return None, {**issue, "reason": "unsupported_series_format", "detail": vs_text}
@@ -371,6 +508,8 @@ class VlrClient:
             score_b = _integer(team_nodes[1].select_one(".score").get_text(strip=True) if team_nodes[1].select_one(".score") else None)
             if score_a is None or score_b is None or score_a == score_b:
                 continue
+            if not _complete_competitive_map_score(score_a, score_b):
+                return None, {**issue, "reason": "incomplete_map_score", "detail": f"{map_name}:{score_a}-{score_b}"}
             map_order = len(maps) + 1
             maps.append({
                 "map_order": map_order,
@@ -412,6 +551,9 @@ class VlrClient:
                         "first_kills": _integer(cell("[data-col='fb']")),
                         "first_deaths": _integer(cell("[data-col='fd']")),
                     })
+        finality_status, finality_reason = validate_series_finality(series_format, source_status, source_score, maps)
+        if finality_status != "FINAL_CANDIDATE":
+            return None, {**issue, "reason": finality_reason, "finality_status": finality_status, "detail": f"source={source_score}"}
         wins_needed = 3 if series_format == "bo5" else 2
         a_maps = sum(item["team_a_rounds"] > item["team_b_rounds"] for item in maps)
         b_maps = len(maps) - a_maps
@@ -446,6 +588,7 @@ class VlrClient:
             "fetched_at": result.fetched_at,
             "raw_path": result.raw_path,
             "content_hash": result.content_hash,
+            "result_finality_status": "FINAL_CANDIDATE",
         }
         normalized = json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
         record["normalized_hash"] = _hash_bytes(normalized)

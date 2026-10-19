@@ -19,6 +19,7 @@ from typing import Any
 from .db import Database
 from .math_utils import clamp, logistic_rating
 from .ratings import calculate_update
+from .competition import is_primary
 
 
 MODEL_ID = "logistic_c1_v1.4b_20260903"
@@ -324,20 +325,59 @@ class ProspectiveFeatureBuilder:
         return result
 
 
-def create_feature_snapshot(db: Database, fixture: dict[str, Any], cutoff: str) -> dict[str, Any]:
+def select_prematch_gold_snapshot(
+    db: Database,
+    fixture: dict[str, Any],
+    cutoff: str | None = None,
+    *,
+    gold_snapshot_id: str | None = None,
+) -> dict[str, Any]:
+    """Return one exact, Gold-ready observation that existed before kickoff."""
+    upper_bound = cutoff or fixture["scheduled_at"]
     with db.connect() as conn:
-        latest_gold = conn.execute(
-            """SELECT snapshot_id,quality_status,observed_at FROM prospective_snapshots WHERE fixture_id=?
-               AND quality_status IN ('ready','locked') AND julianday(observed_at)<=julianday(?)
-               ORDER BY julianday(observed_at) DESC LIMIT 1""", (fixture["fixture_id"], cutoff),
-        ).fetchone()
-        if latest_gold is None:
-            raise ValueError("shadow_missing_ready_gold_snapshot")
-        built = ProspectiveFeatureBuilder(conn, db.config()).build(fixture, cutoff)
+        if gold_snapshot_id:
+            row = conn.execute(
+                """SELECT snapshot_id,quality_status,observed_at,content_hash
+                   FROM prospective_snapshots
+                   WHERE fixture_id=? AND snapshot_id=? AND quality_status IN ('ready','locked')""",
+                (fixture["fixture_id"], gold_snapshot_id),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                """SELECT snapshot_id,quality_status,observed_at,content_hash
+                   FROM prospective_snapshots WHERE fixture_id=?
+                   AND quality_status IN ('ready','locked')
+                   AND julianday(observed_at)<=julianday(?)
+                   ORDER BY julianday(observed_at) DESC, snapshot_id DESC LIMIT 1""",
+                (fixture["fixture_id"], upper_bound),
+            ).fetchone()
+    if row is None:
+        raise ValueError("shadow_missing_ready_gold_snapshot")
+    if not (_time(row["observed_at"]) < _time(fixture["scheduled_at"])):
+        raise ValueError("gold_snapshot_not_before_match")
+    if cutoff is not None and _time(row["observed_at"]) > _time(cutoff):
+        raise ValueError("gold_snapshot_after_cutoff")
+    return dict(row)
+
+
+def create_feature_snapshot(
+    db: Database,
+    fixture: dict[str, Any],
+    cutoff: str | None = None,
+    *,
+    gold_snapshot_id: str | None = None,
+) -> dict[str, Any]:
+    latest_gold = select_prematch_gold_snapshot(
+        db, fixture, cutoff, gold_snapshot_id=gold_snapshot_id
+    )
+    effective_cutoff = latest_gold["observed_at"]
+    with db.connect() as conn:
+        built = ProspectiveFeatureBuilder(conn, db.config()).build(fixture, effective_cutoff)
     payload = {
-        "fixture_id": fixture["fixture_id"], "scheduled_at": fixture["scheduled_at"], "feature_cutoff_at": cutoff,
+        "fixture_id": fixture["fixture_id"], "scheduled_at": fixture["scheduled_at"], "feature_cutoff_at": effective_cutoff,
         "features": built["features"], "feature_status": built["feature_status"], "audit": built["audit"],
-        "gold_snapshot_id": latest_gold["snapshot_id"], "gold_quality_status": latest_gold["quality_status"],
+        "gold_snapshot_id": latest_gold["snapshot_id"], "gold_observed_at": latest_gold["observed_at"],
+        "gold_snapshot_hash": latest_gold["content_hash"], "gold_quality_status": latest_gold["quality_status"],
     }
     content_hash = hashlib.sha256(_json(payload).encode("utf-8")).hexdigest()
     snapshot_id = f"c1-feature:{fixture['fixture_id']}:{content_hash[:20]}"
@@ -349,7 +389,7 @@ def create_feature_snapshot(db: Database, fixture: dict[str, Any], cutoff: str) 
             """INSERT OR IGNORE INTO challenger_feature_snapshots(snapshot_id,fixture_id,created_at,feature_cutoff_at,scheduled_at,
                    gold_snapshot_id,quality_status,feature_json,feature_status_json,evidence_json,content_hash)
                VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
-            (snapshot_id, fixture["fixture_id"], _now(), cutoff, fixture["scheduled_at"], latest_gold["snapshot_id"], latest_gold["quality_status"],
+            (snapshot_id, fixture["fixture_id"], _now(), effective_cutoff, fixture["scheduled_at"], latest_gold["snapshot_id"], latest_gold["quality_status"],
              _json(built["features"]), _json(built["feature_status"]), _json(built["audit"]), content_hash),
         )
     return {"snapshot_id": snapshot_id, "content_hash": content_hash, **payload}
@@ -361,7 +401,8 @@ def freeze_shadow_prediction(db: Database, fixture: dict[str, Any], champion: di
     frozen_at = champion["locked_at"]
     if not (_time(frozen_at) < _time(fixture["scheduled_at"])):
         raise ValueError("shadow_freeze_not_before_match")
-    eligible = int(record_kind == "real_prospective" and fixture["source_id"] == "vlr" and fixture["quality_status"] == "ready")
+    eligible = int(record_kind == "real_prospective" and fixture["source_id"] == "vlr" and fixture["quality_status"] in {"ready", "locked"}
+                   and is_primary(fixture.get("classification", "regional")))
     shadow_id = f"c1-shadow:{fixture['fixture_id']}"
     values = (
         shadow_id, fixture["fixture_id"], champion["prediction_id"], snapshot["snapshot_id"], _now(), frozen_at, fixture["scheduled_at"],
@@ -385,41 +426,108 @@ def freeze_shadow_prediction(db: Database, fixture: dict[str, Any], champion: di
         return dict(conn.execute("SELECT * FROM challenger_predictions WHERE shadow_prediction_id=?", (shadow_id,)).fetchone())
 
 
+SETTLEMENT_SCHEMA_VERSION = "v1.4c-r2.3-shadow-settlement-v1"
+SETTLEMENT_FIELDS = (
+    "actual_winner_id", "resolved_match_id", "champion_brier", "challenger_brier",
+    "champion_log_loss", "challenger_log_loss", "champion_correct", "challenger_correct",
+)
+SHADOW_RESULT_SELECT = """SELECT c.*,p.team_a_id,p.team_b_id,
+    p.actual_winner_id AS canonical_winner_id,p.resolved_match_id AS canonical_match_id,
+    p.team_a_win_probability AS canonical_probability
+    FROM challenger_predictions c JOIN predictions p ON p.prediction_id=c.champion_prediction_id
+    WHERE p.status='resolved' AND c.status IN ('locked','resolved')"""
+
+
+def _expected_settlement(row: Any) -> dict[str, Any]:
+    # Never read an unaliased duplicate result column from a joined SQLite Row.
+    winner = row["canonical_winner_id"]
+    if winner not in {row["team_a_id"], row["team_b_id"]} or not row["canonical_match_id"]:
+        raise ValueError("canonical_result_missing_or_invalid")
+    if not (_time(row["frozen_at"]) < _time(row["scheduled_at"])):
+        raise ValueError("shadow_freeze_not_before_match")
+    if not math.isclose(float(row["champion_probability"]), float(row["canonical_probability"]), abs_tol=1e-12, rel_tol=0):
+        raise ValueError("champion_frozen_probability_mismatch")
+    outcome = float(winner == row["team_a_id"])
+    expected: dict[str, Any] = {"actual_winner_id": winner, "resolved_match_id": row["canonical_match_id"]}
+    for prefix, column in (("champion", "champion_probability"), ("challenger", "challenger_probability")):
+        probability = float(row[column])
+        expected[f"{prefix}_brier"] = (probability-outcome)**2
+        expected[f"{prefix}_log_loss"] = -math.log(min(max(probability if outcome else 1-probability, 1e-15), 1-1e-15))
+        expected[f"{prefix}_correct"] = int((probability >= 0.5) == bool(outcome))
+    return expected
+
+
+def _settlement_matches(row: Any, expected: dict[str, Any]) -> bool:
+    for key, value in expected.items():
+        if isinstance(value, float):
+            if row[key] is None or not math.isclose(float(row[key]), value, abs_tol=1e-12, rel_tol=0):
+                return False
+        elif row[key] != value:
+            return False
+    return True
+
+
 def settle_shadow_predictions(db: Database, *, resolved_at: str | None = None) -> dict[str, int]:
     resolved_at = resolved_at or _now()
     with db.connect() as conn:
-        rows = conn.execute(
-            """SELECT c.*,p.team_a_id,p.team_b_id,p.actual_winner_id,p.resolved_match_id
-               FROM challenger_predictions c JOIN predictions p ON p.prediction_id=c.champion_prediction_id
-               WHERE c.status='locked' AND p.status='resolved' AND p.actual_winner_id IS NOT NULL"""
-        ).fetchall()
+        rows = conn.execute(SHADOW_RESULT_SELECT).fetchall()
+        settled = repaired = blocked = 0
         for row in rows:
-            outcome = 1.0 if row["actual_winner_id"] == row["team_a_id"] else 0.0
-            champion_p, challenger_p = float(row["champion_probability"]), float(row["challenger_probability"])
-            epsilon = 1e-15
-            score = lambda p: -math.log(min(max(p if outcome else 1-p, epsilon), 1-epsilon))
+            try:
+                expected = _expected_settlement(row)
+            except ValueError:
+                blocked += 1
+                continue
+            if row["status"] == "resolved" and _settlement_matches(row, expected):
+                continue
+            if row["status"] == "resolved":
+                revision_no = conn.execute("SELECT COALESCE(MAX(revision_no),0)+1 FROM challenger_settlement_revisions WHERE shadow_prediction_id=?", (row["shadow_prediction_id"],)).fetchone()[0]
+                previous = {key: row[key] for key in SETTLEMENT_FIELDS}
+                frozen = {key: row[key] for key in ("shadow_prediction_id", "feature_snapshot_id", "frozen_at", "artifact_hash", "champion_probability", "challenger_probability")}
+                conn.execute(
+                    """INSERT INTO challenger_settlement_revisions(revision_id,shadow_prediction_id,revision_no,schema_version,
+                       reason,previous_json,corrected_json,frozen_input_hash,created_at) VALUES(?,?,?,?,?,?,?,?,?)""",
+                    (f"{row['shadow_prediction_id']}:settlement:{revision_no}", row["shadow_prediction_id"], revision_no,
+                     SETTLEMENT_SCHEMA_VERSION, "canonical_result_binding_or_metric_repair", _json(previous), _json(expected),
+                     hashlib.sha256(_json(frozen).encode()).hexdigest(), resolved_at),
+                )
+                repaired += 1
+            else:
+                settled += 1
             conn.execute(
                 """UPDATE challenger_predictions SET status='resolved',actual_winner_id=?,resolved_match_id=?,resolved_at=?,
                    champion_brier=?,challenger_brier=?,champion_log_loss=?,challenger_log_loss=?,champion_correct=?,challenger_correct=?
-                   WHERE shadow_prediction_id=? AND status='locked'""",
-                (row["actual_winner_id"], row["resolved_match_id"], resolved_at, (champion_p-outcome)**2, (challenger_p-outcome)**2,
-                 score(champion_p), score(challenger_p), int((champion_p>=0.5)==bool(outcome)), int((challenger_p>=0.5)==bool(outcome)), row["shadow_prediction_id"]),
+                   WHERE shadow_prediction_id=?""",
+                (expected["actual_winner_id"], expected["resolved_match_id"], row["resolved_at"] or resolved_at,
+                 expected["champion_brier"], expected["challenger_brier"], expected["champion_log_loss"], expected["challenger_log_loss"],
+                 expected["champion_correct"], expected["challenger_correct"], row["shadow_prediction_id"]),
             )
-    return {"challenger_settled": len(rows)}
+    return {"challenger_settled": settled, "challenger_metrics_repaired": repaired, "challenger_settlement_blocked": blocked}
 
 
 def prospective_metrics(db: Database) -> dict[str, Any]:
     with db.connect() as conn:
-        rows = conn.execute(
-            """SELECT c.*,p.team_a_id,p.team_b_id FROM challenger_predictions c
-               JOIN predictions p ON p.prediction_id=c.champion_prediction_id
-               WHERE c.status='resolved' AND c.eligible=1 AND c.record_kind='real_prospective'
-               ORDER BY julianday(c.scheduled_at),c.shadow_prediction_id"""
-        ).fetchall()
+        observed_rows = conn.execute(SHADOW_RESULT_SELECT + " AND c.status='resolved' AND c.eligible=1 AND c.record_kind='real_prospective' ORDER BY julianday(c.scheduled_at),c.shadow_prediction_id").fetchall()
+        revision_count = conn.execute("SELECT COUNT(*) FROM challenger_settlement_revisions").fetchone()[0]
+    rows = []
+    invalid: dict[str, int] = defaultdict(int)
+    for row in observed_rows:
+        try:
+            expected = _expected_settlement(row)
+            if not _settlement_matches(row, expected):
+                raise ValueError("shadow_settlement_mismatch")
+            rows.append(row)
+        except ValueError as exc:
+            invalid[str(exc)] += 1
     count = len(rows)
     phase = "ACCUMULATING" if count < 30 else "PRELIMINARY" if count < 50 else "EVALUATING" if count < 100 else "GATE_READY"
     result: dict[str, Any] = {"eligible_resolved_matches": count, "gate": 100, "phase": phase, "promotion_status": "EVALUATING" if count < 100 else "GATE_READY", "promotion_enabled": False}
-    if not rows:
+    result["metric_integrity"] = {
+        "status": "DEGRADED" if invalid else "TRUSTED", "schema_version": SETTLEMENT_SCHEMA_VERSION,
+        "checked_matches": len(observed_rows), "valid_matches": count, "invalid_matches": sum(invalid.values()),
+        "reasons": dict(invalid), "repair_revisions": revision_count,
+    }
+    if not rows or invalid:
         result["metrics"] = None
         return result
     def model_metrics(prefix: str, probability_column: str) -> dict[str, float]:

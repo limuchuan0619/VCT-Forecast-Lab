@@ -3,7 +3,7 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     VCT_DB_PATH=/data/vct.sqlite3 \
-    VCT_RAW_ROOT=/data/raw/vlr/daily \
+    VCT_RAW_ROOT=/tmp/vct-raw/vlr/daily \
     PORT=8080
 
 WORKDIR /app
@@ -14,7 +14,8 @@ RUN pip install --no-cache-dir . -r requirements.txt
 
 COPY bridge ./bridge
 COPY artifacts ./artifacts
-COPY seed ./seed
+# Build a schema-only seed locally. No production data is distributed.
+RUN python -c "from vct_prediction.db import Database; Database('seed/vct.sqlite3').initialize()"
 COPY runner_service.py ./
 
 EXPOSE 8080

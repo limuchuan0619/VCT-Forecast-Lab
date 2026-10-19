@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1788232058353,
+      "tag": "0000_hot_pandemic",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788232125147,
+      "tag": "0001_seed-vct-baseline",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788440540325,
+      "tag": "0002_graceful_gabe_jones",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788616064145,
+      "tag": "0003_amusing_power_pack",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1788678534641,
+      "tag": "0004_complex_bloodstrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1788761920147,
+      "tag": "0005_thankful_morph",
+      "breakpoints": true
+    }
+  ]
+}

@@ -14,10 +14,10 @@ The V1.4B historical dataset was sorted by match time and fixed as:
 
 There is no random shuffle:
 
-\`\`\`text
+```text
 earliest ───────────────► latest
 Train 650 | Validation 150 | Frozen Test 200
-\`\`\`
+```
 
 The ordered Test IDs were hashed before final evaluation. Once inspected, this Test set may not be used to repeatedly change features, tune parameters or select a successor.
 
@@ -84,14 +84,14 @@ They are stored separately. The 200 historical Test matches are never added to t
 
 ## Prospective gate
 
-Current state:
+State read from the production aggregate API on 2026-10-19 19:18 Asia/Shanghai:
 
 | Field | Value |
 |---|---|
 | Model | Logistic C1 |
 | Mode | FROZEN SHADOW |
-| Eligible resolved matches | 0 |
-| Status | ACCUMULATING |
+| Eligible resolved matches | 34 |
+| Status | PRELIMINARY |
 | Formal gate | 100 |
 | Promotion enabled | No |
 
@@ -99,12 +99,21 @@ Progress labels are sample-count labels, not performance judgements:
 
 | Matches | Label |
 |---:|---|
-| 0–29 | ACCUMULATING |
-| 30–49 | PRELIMINARY |
-| 50–99 | EVALUATING |
+| 0-29 | ACCUMULATING |
+| 30-49 | PRELIMINARY |
+| 50-99 | EVALUATING |
 | 100+ | GATE_READY |
 
 GATE_READY means an authorized review may begin. It does not automatically promote or reject a model.
+
+The same 34 eligible resolved pairs produced the following preliminary values:
+
+| Model | Brier | Log Loss | Accuracy | ECE (10 bins) |
+|---|---:|---:|---:|---:|
+| Champion V1.0.0 | 0.247917 | 0.689298 | 0.558824 | 0.039284 |
+| Frozen Logistic C1 | 0.235605 | 0.664047 | 0.647059 | 0.131233 |
+
+C1 has lower Brier and Log Loss in this early sample, but higher ECE. This is not evidence of promotion eligibility or a statistically established advantage. No historical Test rows or later-added qualification/secondary/invitational cohorts enter the original 100-pair gate. The separate Gold count is 42 eligible fixtures and must not be confused with 34 paired comparisons.
 
 ## Anti-selection rules
 

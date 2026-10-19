@@ -12,9 +12,14 @@ Key files:
 
 Local verification:
 
-\`\`\`powershell
+```powershell
 npm ci
+npm test
 npm run build
-\`\`\`
+```
 
 The portfolio Vite configuration uses a placeholder local D1 binding. The production Sites project ID, D1 instance, runtime variables and hosting configuration are intentionally excluded. This folder is not the production deployment source.
+
+The public seed migration is an explicitly empty local initialization. Historical production counts and real match rows are not seeded. Initialize the included schema migrations into your own local D1 database before exercising data-backed pages; a successful build alone does not provision a database or validate a live provider.
+
+Reader-facing pages are prediction history/details, match reviews and model comparison. Deterministic settlement, source evidence and AI hypotheses remain separate. AI tests use isolated fixtures and mocked provider responses, not paid live DeepSeek calls.

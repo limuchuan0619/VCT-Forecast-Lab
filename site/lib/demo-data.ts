@@ -1,6 +1,8 @@
 import type { PublicOverview } from './vct-types';
 
 export const fallbackOverview: PublicOverview = {
+  dataMode: 'DEMO',
+  dataModeReason: '仅用于本地开发或实时数据不可用时的明确演示，不代表当前生产预测。',
   prediction: {
     id: '5c150c21-a03a-4817-af9a-a45b7871549e', source: 'system_auto', modelVersion: 'v1.0.0',
     lockedAt: '2026-08-30T18:07:51.688Z', scheduledAt: '2026-08-30T20:00:00.000Z', event: 'VCT 2026: Americas Stage 2',
@@ -35,5 +37,7 @@ export const fallbackOverview: PublicOverview = {
   learning: {
     mode: 'prospective_gold', startedAt: null, snapshots: 0, fixtures: 0, ready: 0,
     blocked: 0, labeled: 0, pending: 0, trainingEligible: 0, trainingGate: 100,
+    snapshotObservations: 0, fixtureCoverage: 0,
   },
+  challenger: null,
 };

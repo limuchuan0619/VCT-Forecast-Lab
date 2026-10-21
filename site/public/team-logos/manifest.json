@@ -1,0 +1,177 @@
+{
+  "verifiedAt": "2026-10-19",
+  "note": "Original team marks verified against exact VLR team header identity. Trademarks belong to their owners; no affiliation or separate image license asserted.",
+  "teams": [
+    {
+      "id": "vlr_team_120",
+      "name": "100 Thieves",
+      "aliases": ["100T"],
+      "src": "/team-logos/120-100-thieves.png",
+      "source": "https://www.vlr.gg/team/120",
+      "sourceImage": "https://owcdn.net/img/603c00d5c5a08.png",
+      "sha256": "7bf7c9c6caaae7b25ce71d3cd8943eb0eaceafc82fe58c6cf805cf9574ac480d"
+    },
+    {
+      "id": "vlr_team_1120",
+      "name": "EDward Gaming",
+      "aliases": ["EDG"],
+      "src": "/team-logos/1120-edward-gaming.png",
+      "source": "https://www.vlr.gg/team/1120",
+      "sourceImage": "https://owcdn.net/img/62c82049253b2.png",
+      "sha256": "68a1f16dbb9544885ccf41aab59f4333afa7ac26115955118c2d4f8703c0aff9"
+    },
+    {
+      "id": "vlr_team_1184",
+      "name": "FUT Esports",
+      "aliases": ["FUT"],
+      "src": "/team-logos/1184-fut-esports.png",
+      "source": "https://www.vlr.gg/team/1184",
+      "sourceImage": "https://owcdn.net/img/632be9976b8fe.png",
+      "sha256": "a56871ac80f948dc3d61f206a8a4ea2724da3e8a9e7155b50f9ecdbc5449ee33"
+    },
+    {
+      "id": "vlr_team_11058",
+      "name": "G2 Esports",
+      "aliases": ["G2"],
+      "src": "/team-logos/11058-g2-esports.png",
+      "source": "https://www.vlr.gg/team/11058",
+      "sourceImage": "https://owcdn.net/img/633822848a741.png",
+      "sha256": "1ac2e2ba220fa33ebd59c51df220fae95c1078c9356df28b6dcbbebcb6c9d218"
+    },
+    {
+      "id": "vlr_team_918",
+      "name": "Global Esports",
+      "aliases": ["GE"],
+      "src": "/team-logos/918-global-esports.png",
+      "source": "https://www.vlr.gg/team/918",
+      "sourceImage": "https://owcdn.net/img/629f316ddd4dd.png",
+      "sha256": "e32266b7b5a5041a9d10874295d2f9c84bebca5caf28193cac342510dee69024"
+    },
+    {
+      "id": "vlr_team_13576",
+      "name": "JD Gaming",
+      "aliases": ["JDG"],
+      "src": "/team-logos/13576-jd-gaming.png",
+      "source": "https://www.vlr.gg/team/13576",
+      "sourceImage": "https://owcdn.net/img/64f9825408326.png",
+      "sha256": "0b8ac83596f3201dd0cecbc3d81216e4c7aec08561549e32ce295951dd0115c3"
+    },
+    {
+      "id": "vlr_team_8877",
+      "name": "Karmine Corp",
+      "aliases": ["KC"],
+      "src": "/team-logos/8877-karmine-corp.png",
+      "source": "https://www.vlr.gg/team/8877",
+      "sourceImage": "https://owcdn.net/img/627403a0d9e48.png",
+      "sha256": "499f544ea3999ea68a27d8c0b36404477b213feec7249ec78ebe44508b39eea6"
+    },
+    {
+      "id": "vlr_team_6961",
+      "name": "LOUD",
+      "aliases": ["LOUD"],
+      "src": "/team-logos/6961-loud.png",
+      "source": "https://www.vlr.gg/team/6961",
+      "sourceImage": "https://owcdn.net/img/62bbec8dc1b9f.png",
+      "sha256": "773fd17ed867ed9f93db1756b07f70ede917582c9d17aa055294fd39a5d413ac"
+    },
+    {
+      "id": "vlr_team_7386",
+      "name": "MIBR",
+      "aliases": [],
+      "src": "/team-logos/7386-mibr.png",
+      "source": "https://www.vlr.gg/team/7386",
+      "sourceImage": "https://owcdn.net/img/632be7626d6d9.png",
+      "sha256": "ce8273275984576a9a94a3699dc077b511c7be672f1883c04b88c4e08da4d1ce"
+    },
+    {
+      "id": "vlr_team_1034",
+      "name": "NRG",
+      "aliases": ["NRG"],
+      "src": "/team-logos/1034-nrg.png",
+      "source": "https://www.vlr.gg/team/1034",
+      "sourceImage": "https://owcdn.net/img/6610f026c1a9e.png",
+      "sha256": "614b0dd6715a86403b2657ecfba6b11729090dec9802eb078164f193e3baf874"
+    },
+    {
+      "id": "vlr_team_11060",
+      "name": "Nongshim RedForce",
+      "aliases": ["NS"],
+      "src": "/team-logos/11060-nongshim-redforce.png",
+      "source": "https://www.vlr.gg/team/11060",
+      "sourceImage": "https://owcdn.net/img/6399bb707aacb.png",
+      "sha256": "db9ee3a538833e067d9bc5c618b2ed1144bc2f114e7a764209cf0a1ab71dcc9b"
+    },
+    {
+      "id": "vlr_team_624",
+      "name": "Paper Rex",
+      "aliases": ["PRX"],
+      "src": "/team-logos/624-paper-rex.png",
+      "source": "https://www.vlr.gg/team/624/paper-rex",
+      "sourceImage": "https://owcdn.net/img/62bbeba74d5cb.png",
+      "sha256": "de532926a13347b0d950e3caa3eb24751aa5e4856107f9af113f934d0b6b7a2b"
+    },
+    {
+      "id": "vlr_team_14",
+      "name": "T1",
+      "aliases": [],
+      "src": "/team-logos/14-t1.png",
+      "source": "https://www.vlr.gg/team/14",
+      "sourceImage": "https://owcdn.net/img/62fe0b8f6b084.png",
+      "sha256": "fb5b6699dfad215a3f84110abf0c8b371531515e5017c556262d844ea5047b3a"
+    },
+    {
+      "id": "vlr_team_731",
+      "name": "TYLOO",
+      "aliases": ["TYL"],
+      "src": "/team-logos/731-tyloo.png",
+      "source": "https://www.vlr.gg/team/731",
+      "sourceImage": "https://owcdn.net/img/63eb60fb08390.png",
+      "sha256": "6cce4437482dc65cd5ddf81bb7ac8b51f2eb8c1159a7e7ecabd59555310dc58c"
+    },
+    {
+      "id": "vlr_team_474",
+      "name": "Team Liquid",
+      "aliases": ["TL"],
+      "src": "/team-logos/474-team-liquid.png",
+      "source": "https://www.vlr.gg/team/474",
+      "sourceImage": "https://owcdn.net/img/640c381f0603f.png",
+      "sha256": "42e4b9fcc0cb1db98bc82ae2083526ba074092a7735ed1d367e511468dd935e9"
+    },
+    {
+      "id": "vlr_team_2059",
+      "name": "Team Vitality",
+      "aliases": ["VIT"],
+      "src": "/team-logos/2059-team-vitality.png",
+      "source": "https://www.vlr.gg/team/2059",
+      "sourceImage": "https://owcdn.net/img/6466d79e1ed40.png",
+      "sha256": "8a72f65faa47b9ae770ba81d30238fafdb3adafc5a572b5c2057ed6dd770f56f"
+    },
+    {
+      "id": "vlr_team_11229",
+      "name": "VARREL",
+      "aliases": ["VL"],
+      "src": "/team-logos/11229-varrel.png",
+      "source": "https://www.vlr.gg/team/11229",
+      "sourceImage": "https://owcdn.net/img/63a74624cc76a.png",
+      "sha256": "75724419892e05fbd19f923ae2e19c350d9507ed8b944cd28fd9e8601207bcfc"
+    },
+    {
+      "id": "vlr_team_13581",
+      "name": "Xi Lai Gaming",
+      "aliases": ["XLG"],
+      "src": "/team-logos/13581-xi-lai-gaming.png",
+      "source": "https://www.vlr.gg/team/13581",
+      "sourceImage": "https://owcdn.net/img/671742f863b9b.png",
+      "sha256": "07161cf4edb4d91d195faa0c454d880cee8654efdb0fea16465fde759adb49d3"
+    },
+    {
+      "id": "vlr_team_2593",
+      "name": "FNATIC",
+      "aliases": ["FNC"],
+      "src": "/team-logos/2593-fnatic.png",
+      "source": "https://www.vlr.gg/team/2593/fnatic",
+      "sourceImage": "https://owcdn.net/img/62a40cc2b5e29.png",
+      "sha256": "49f0fe43450fa4061e618e8d52c08f6e636a492750e3cedefc86af00352758e7"
+    }
+  ]
+}

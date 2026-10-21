@@ -12,6 +12,7 @@ import {
   reviewSummary,
 } from '@/lib/presentation';
 import { chinaTime, percent, regionLabel } from '@/lib/view-helpers';
+import { TeamLogo } from '@/components/team-logo';
 
 export const dynamic = 'force-dynamic';
 type Props = {
@@ -59,9 +60,16 @@ export default async function PredictionDetailPage({
               {regionLabel(record.region)} · {chinaTime(record.scheduledAt)} ·{' '}
               {record.seriesFormat === 'bo5' ? '五局三胜' : '三局两胜'}
             </span>
-            <h1>
-              {record.teamA} <span className="muted-versus">对阵</span>{' '}
-              {record.teamB}
+            <h1 className="detail-teams">
+              <span className="team-name">
+                <TeamLogo team={record.teamA} />
+                {record.teamA}
+              </span>
+              <span className="muted-versus">对阵</span>
+              <span className="team-name">
+                <TeamLogo team={record.teamB} />
+                {record.teamB}
+              </span>
             </h1>
             <p>{record.event}</p>
           </div>

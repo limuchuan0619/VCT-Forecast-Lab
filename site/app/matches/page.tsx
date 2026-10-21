@@ -16,7 +16,7 @@ import type { ComparisonModel } from '@/lib/presentation';
 import { percent } from '@/lib/view-helpers';
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
-  title: '预测表现｜VCT Forecast Lab',
+  title: '模型实验室｜VCT Forecast Lab',
   description: '用相同比赛检验系统预测、试验预测和AI参考的长期表现。',
 };
 export default async function ModelsPage({
@@ -55,7 +55,7 @@ export default async function ModelsPage({
         <section className="reader-heading">
           <div>
             <span className="reader-kicker">把每次判断交给比赛检验</span>
-            <h1>预测表现</h1>
+            <h1>模型实验室</h1>
             <p>不只看猜中一场，更看长期给出的胜率是否靠谱。</p>
           </div>
         </section>
@@ -91,7 +91,15 @@ export default async function ModelsPage({
                   <tr>
                     <th>预测方式</th>
                     <th>检验场次</th>
-                    <th>猜中胜者</th>
+                    <th>
+                      胜者命中率 <small>Accuracy</small>
+                    </th>
+                    <th>
+                      胜率偏差 <small>Brier Score ↓</small>
+                    </th>
+                    <th>
+                      错误代价 <small>Log Loss ↓</small>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -102,6 +110,8 @@ export default async function ModelsPage({
                         <th scope="row">{modelNames[model]}</th>
                         <td>{m.matches} 场</td>
                         <td>{percent(m.accuracy)}</td>
+                        <td>{m.brier.toFixed(4)}</td>
+                        <td>{m.logLoss.toFixed(4)}</td>
                       </tr>
                     );
                   })}
@@ -111,6 +121,13 @@ export default async function ModelsPage({
           ) : (
             show && <p>还没有可以共同比较的已结束比赛。</p>
           )}
+          <p className="reader-note">
+            命中率越高越好；胜率偏差和错误代价越低越好，后者对“很有把握却猜错”的判断扣分更多。
+          </p>
+          <p className="reader-note">
+            系统预测为 Champion V1.0.0，试验预测为冻结的 Logistic C1。Elo
+            目前只有历史离线评估，没有可核验的真实赛前对照记录，因此不并入这张实时成绩表。
+          </p>
           <p className="reader-note">
             目前仍在积累样本，暂不评选最优预测方式，也不替换系统模型。试验预测已完成{' '}
             {overview.challenger?.eligibleResolvedMatches ?? '—'} / 100

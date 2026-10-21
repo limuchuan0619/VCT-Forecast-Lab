@@ -373,6 +373,8 @@ def _record_prospective_snapshot(
     quality_status: str,
     blockers: list[str],
     now: datetime,
+    *,
+    observed_at: str | None = None,
 ) -> bool:
     """Append an as-observed training row without inventing unavailable fields."""
     team_columns = """team_id, name, region, rating, matches_played, roster_version,
@@ -410,6 +412,9 @@ def _record_prospective_snapshot(
             "content_hash": fixture["content_hash"],
         },
     }
+    if observed_at is not None:
+        snapshot['source']['fixture_fetched_at'] = fixture['fetched_at']
+        snapshot['data_readiness_observed_at'] = observed_at
     serialized = _json(snapshot)
     content_hash = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
     snapshot_id = f"gold:{fixture['fixture_id']}:{checkpoint}:{content_hash[:20]}"
@@ -422,7 +427,7 @@ def _record_prospective_snapshot(
                    model_version, prediction_id, outcome_status, created_at
                ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)""",
             (
-                snapshot_id, fixture["fixture_id"], fixture["fetched_at"], checkpoint,
+                snapshot_id, fixture["fixture_id"], observed_at or fixture["fetched_at"], checkpoint,
                 fixture["scheduled_at"], quality_status, _json(blockers), serialized,
                 content_hash, MODEL_VERSION, prediction_id, _now(),
             ),
@@ -749,6 +754,8 @@ def run_daily_automation(
     horizon_hours: int = 48,
     trigger_type: str = "cli",
     now: datetime | None = None,
+    readiness_store=None,
+    evidence_store=None,
 ) -> dict[str, Any]:
     """Run the complete unattended V1.1 loop in one idempotent operation."""
     db.initialize()
@@ -770,7 +777,22 @@ def run_daily_automation(
         "used_cached_fixtures": False,
         "phases": {},
     }
-    client = VlrClient(raw_root)
+    if readiness_store is not None:
+        from .readiness import PreparedVlrClient
+        client = PreparedVlrClient(raw_root, readiness_store, now=now)
+        with db.connect() as conn:
+            for row in conn.execute("SELECT external_match_id,scheduled_at,external_event_id FROM fixtures WHERE completed_match_id IS NULL"):
+                client.live_matches[row['external_match_id']] = row['scheduled_at']
+                if datetime.fromisoformat(row['scheduled_at'].replace('Z','+00:00')) <= now+timedelta(hours=horizon_hours):
+                    client.urgent_events.add(row['external_event_id'])
+    else:
+        client = VlrClient(raw_root)
+    client.evidence_store = evidence_store
+    if readiness_store is not None and evidence_store is not None:
+        try:
+            evidence_store.bootstrap_cached_teams(client)
+        except Exception as exc:
+            evidence_store.note_error(exc)
     errors: list[str] = []
     try:
         try:
@@ -970,6 +992,36 @@ def run_daily_automation(
                     (result["match_id"], result["external_match_id"]),
                 )
         counters.update(_lock_ready_predictions(db, now, horizon_hours))
+        # Existing ready matches lock first. Missing-history preparation cannot
+        # delay their freeze; its own request/time budget is strictly separate.
+        if readiness_store is not None:
+            from .readiness import prepare_history
+            try:
+                counters['data_readiness'] = prepare_history(db, client, now=now)
+                if counters['data_readiness']['historical_matches_imported']:
+                    fresh_now = datetime.now(timezone.utc)
+                    with db.connect() as conn:
+                        waiting = [dict(r) for r in conn.execute("""SELECT * FROM fixtures WHERE prediction_id IS NULL
+                            AND julianday(scheduled_at)>julianday(?) AND julianday(scheduled_at)<=julianday(?)""",
+                            (fresh_now.isoformat(),(fresh_now+timedelta(days=14)).isoformat()))]
+                    for fixture in waiting:
+                        fixture['map_pool'],fixture['map_pool_provenance'] = _event_map_pool(db,fixture)
+                        fixture['blockers'] = [b for b in json.loads(fixture['blocker_json']) if b not in {'team_history_below_three_series','scheduled_time_passed','map_pool_insufficient'}]
+                        state, blockers = _quality(db, fixture, fresh_now)
+                        with db.connect() as conn:
+                            conn.execute('UPDATE fixtures SET quality_status=?,blocker_json=?,map_pool_json=?,map_pool_provenance=?,updated_at=? WHERE fixture_id=? AND prediction_id IS NULL',
+                                         (state,_json(blockers),_json(fixture['map_pool']),fixture['map_pool_provenance'],fresh_now.isoformat(),fixture['fixture_id']))
+                        _record_prospective_snapshot(db, fixture, state, blockers, fresh_now, observed_at=fresh_now.isoformat())
+                    extra = _lock_ready_predictions(db, fresh_now, horizon_hours)
+                    for key,value in extra.items():
+                        if isinstance(value,int):
+                            counters[key] = counters.get(key,0)+value
+                        elif isinstance(value,list):
+                            counters[key] = counters.get(key,[])+value
+            except Exception as exc:
+                counters['data_readiness'] = {'version':'data-readiness-v1','status':'DEFERRED','reason':str(exc)[:250]}
+            counters['source_workload'] = {'network_requests':client.network_requests,'cache_hits':client.cache_hits,
+                                           'request_limit':client.request_limit,'cache_compressed_limit_bytes':10_000_000}
         counters["phases"]["prediction_lock"] = {
             "status": "completed" if not counters["prediction_failures"] else "partial",
             "locked": counters["predictions_locked"],
@@ -995,6 +1047,14 @@ def run_daily_automation(
         counters["retry_log"] = client.retry_log[-20:]
         counters.update(_prospective_stats(db))
         counters["fixtures_by_competition"] = _competition_coverage(db)
+        if evidence_store is not None:
+            try:
+                evidence_store.sync_main_records(db)
+            except Exception as exc:
+                evidence_store.note_error(exc)
+            counters['data_preservation'] = evidence_store.summary()
+            if evidence_store.errors:
+                errors.append('数据保全降级：'+ '; '.join(evidence_store.errors[:3]))
         status = "partial" if errors or counters["event_failures"] or counters["fixture_failures"] else "completed"
         error_text = "\n".join(errors) if errors else None
         _finish_run(db, run_id, status, counters, error_text)

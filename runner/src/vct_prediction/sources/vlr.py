@@ -201,6 +201,14 @@ class VlrClient:
     def close(self) -> None:
         self.client.close()
 
+    def _preserve_match(self, result, soup, event):
+        ledger = getattr(self, 'evidence_store', None)
+        if ledger is not None:
+            try:
+                ledger.observe_match(result, soup, event)
+            except Exception as exc:
+                ledger.note_error(exc)
+
     def fetch(self, path_or_url: str) -> FetchResult:
         url = path_or_url if path_or_url.startswith("http") else urljoin(BASE_URL, path_or_url)
         if self._cache_responses and url in self._response_cache:
@@ -213,6 +221,9 @@ class VlrClient:
             if wait > 0:
                 time.sleep(wait)
             try:
+                before_request = getattr(self, 'before_network_request', None)
+                if before_request:
+                    before_request()
                 response = self.client.get(url)
                 self._last_request = time.monotonic()
                 response.raise_for_status()
@@ -224,6 +235,9 @@ class VlrClient:
                 if not retryable or attempt >= attempts - 1:
                     break
                 delay = self.retry_delays[attempt]
+                retry_allowed = getattr(self, 'source_retry_allowed', None)
+                if retry_allowed and not retry_allowed(delay):
+                    break
                 self.retry_count += 1
                 self.retry_log.append({
                     "url": url,
@@ -381,12 +395,24 @@ class VlrClient:
                     "raw_path":result.raw_path,"fetched_at":result.fetched_at,
                     "source_status":_clean(status_node.get_text(" ",strip=True) if status_node else "").casefold(),
                     "unresolved_teams": bool(names) and all(n.casefold() in {"tbd","tba","-",""} for n in names)}
+                ledger = getattr(self, 'evidence_store', None)
+                if ledger is not None:
+                    score_nodes = item.select('.match-item-vs-team-score')
+                    scores = [_integer(n.get_text(strip=True)) for n in score_nodes[:2]]
+                    ledger.safe_append('match_listing', re.match(r'/(\d+)/',href).group(1),
+                        {'authority':'SOURCE_OBSERVED_NOT_FORMAL',
+                         'event':{k:event.get(k) for k in ('external_event_id','name','region','classification')},
+                         'team_names':names,'source_status':self.link_observations[href]['source_status'],
+                         'source_series_score':scores if len(scores)==2 and all(s is not None for s in scores) else None,
+                         'source_time_text':_clean(item.select_one('.match-item-time').get_text(' ',strip=True) if item.select_one('.match-item-time') else None)},
+                        observed_at=result.fetched_at,source_url=urljoin(BASE_URL,href),source_content_hash=result.content_hash)
         return links, result
 
     def parse_fixture(self, href: str, event: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, Any]]:
         """Parse a scheduled match without inventing a result or map order."""
         result = self.fetch(href)
         soup = self.soup(result)
+        self._preserve_match(result, soup, event)
         external_id_match = re.match(r"/(\d+)/", href)
         issue = {
             "external_id": external_id_match.group(1) if external_id_match else href,
@@ -452,6 +478,7 @@ class VlrClient:
     def parse_match(self, href: str, event: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, Any]]:
         result = self.fetch(href)
         soup = self.soup(result)
+        self._preserve_match(result, soup, event)
         external_id_match = re.match(r"/(\d+)/", href)
         issue = {
             "external_id": external_id_match.group(1) if external_id_match else href,

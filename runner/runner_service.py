@@ -55,6 +55,8 @@ def settings() -> dict[str, Any]:
         "interval": positive_int("VCT_RUN_INTERVAL_SECONDS", 7200, 900),
         "failure_retry": positive_int("VCT_FAILURE_RETRY_SECONDS", 900, 300),
         "horizon_hours": positive_int("VCT_HORIZON_HOURS", 48, 1),
+        "readiness": True,
+        "preserve_evidence": True,
         "port": positive_int("PORT", 8080, 1),
     }
 
@@ -114,6 +116,7 @@ def storage_diagnostics(database: Path, raw_root: Path) -> dict[str, int | None]
         "databaseBytes": file_size(database),
         "databaseWalBytes": file_size(Path(f"{database}-wal")),
         "databaseShmBytes": file_size(Path(f"{database}-shm")),
+        "evidenceLedgerBytes": file_size(database.with_name('evidence-ledger.sqlite3')),
         "rawSnapshotBytes": raw_bytes,
         "rawSnapshotFiles": raw_files,
     }
@@ -147,12 +150,33 @@ def run_cycle(config: dict[str, Any]) -> bool:
     try:
         prepare_raw_root(config["database"], config["raw_root"])
         database = Database(config["database"])
+        readiness_kwargs = {}
+        if config.get('readiness'):
+            from vct_prediction.readiness import ReadinessStore
+            readiness_kwargs['readiness_store'] = ReadinessStore(config['database'].with_name('readiness-state.sqlite3'))
+        evidence_error = None
+        if config.get('preserve_evidence'):
+            try:
+                from vct_prediction.evidence import EvidenceLedger
+                ledger = EvidenceLedger(config['database'].with_name('evidence-ledger.sqlite3'))
+                readiness_kwargs['evidence_store'] = ledger
+                try:
+                    ledger.sync_main_records(database)
+                except Exception as exc:
+                    ledger.note_error(exc)
+            except Exception as exc:
+                evidence_error = str(exc)[:200]
         result = run_daily_automation(
             database,
             config["raw_root"],
             horizon_hours=config["horizon_hours"],
             trigger_type="scheduled_task",
+            **readiness_kwargs,
         )
+        if evidence_error:
+            result['data_preservation'] = {'status':'DEGRADED','errors':[evidence_error],'formal_authority':False}
+            result.setdefault('errors',[]).append('数据保全未启动：'+evidence_error)
+            result['ok'],result['status'] = False,'partial'
         sync = run_bridge(config["database"], config["base_url"])
         completed_at = now()
         model_success = bool(result.get("ok"))
@@ -215,6 +239,26 @@ def stop(_signal_number: int, _frame: Any) -> None:
     STOP.set()
 
 
+def next_cycle_delay(config: dict[str, Any], success: bool, *, current: datetime | None = None) -> int:
+    """Finish near-term evidence confirmation without changing the normal cadence."""
+    delay = config['interval'] if success else config['failure_retry']
+    at = current or datetime.now(timezone.utc)
+    with STATE_LOCK:
+        readiness = ((STATE.get('lastRun') or {}).get('counters') or {}).get('data_readiness') or {}
+    if readiness.get('status') == 'DEFERRED':
+        return min(delay, config['failure_retry'])
+    for team in readiness.get('teams', []):
+        if team.get('status') not in {'QUEUED','PENDING_CONFIRMATION','SOURCE_RETRY'}:
+            continue
+        kickoff = datetime.fromisoformat(team['next_match'].replace('Z','+00:00'))
+        if not 0 < (kickoff-at).total_seconds() <= config['horizon_hours']*3600:
+            continue
+        next_check = team.get('next_check_at')
+        wait = (datetime.fromisoformat(next_check.replace('Z','+00:00'))-at).total_seconds() if next_check else config['failure_retry']
+        delay = min(delay, max(config['failure_retry'], int(wait)))
+    return delay
+
+
 def main() -> int:
     config = settings()
     ensure_database(config["database"])
@@ -225,7 +269,7 @@ def main() -> int:
     try:
         while not STOP.is_set():
             success = run_cycle(config)
-            delay = config["interval"] if success else config["failure_retry"]
+            delay = next_cycle_delay(config, success)
             next_run = datetime.fromtimestamp(time.time() + delay, tz=timezone.utc).isoformat()
             update_state(nextRunAt=next_run)
             STOP.wait(delay)

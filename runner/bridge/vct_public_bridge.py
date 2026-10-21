@@ -165,6 +165,50 @@ def prediction_payload(row: sqlite3.Row) -> dict[str, Any]:
     }
 
 
+def prematch_reader_context(connection: sqlite3.Connection, row: sqlite3.Row) -> dict[str, Any] | None:
+    """Small explanatory context, separate from the immutable prediction payload.
+
+    Reuse only the frozen recent-form match IDs and facts already inserted and
+    source-observed strictly before the lock. Never fetch or write anything.
+    Existing public AI jobs ignore this auxiliary field and retain their packet.
+    """
+    if row["status"] != "locked":
+        return None
+    snapshot = load_json(row["factor_snapshot_json"], {})
+    cutoff = iso(row["locked_at"])
+    recent = []
+    try:
+        for side in ("team_a", "team_b"):
+            ids = [item.get("match_id") for item in snapshot.get("recent_form", {}).get(side, {}).get("components", [])]
+            ids = list(dict.fromkeys(item for item in ids if isinstance(item, str) and re.fullmatch(r"vlr_match_\d+", item)))[:30]
+            if not ids:
+                continue
+            team_id = row[f"{side}_id"]
+            values = connection.execute(f"""SELECT m.*, ta.name AS name_a,tb.name AS name_b,
+                sr.fetched_at AS known_source_at,sr.source_url AS known_source_url
+                FROM matches m JOIN teams ta ON ta.team_id=m.team_a_id JOIN teams tb ON tb.team_id=m.team_b_id
+                JOIN source_records sr ON sr.canonical_id=m.match_id AND sr.source_id='vlr' AND sr.entity_type='match'
+                WHERE m.match_id IN ({','.join('?' for _ in ids)}) AND (m.team_a_id=? OR m.team_b_id=?)
+                  AND julianday(m.played_at)<julianday(?) AND julianday(m.inserted_at)<julianday(?)
+                  AND julianday(sr.fetched_at)<julianday(?) AND m.processed=1
+                ORDER BY julianday(m.played_at) DESC LIMIT 3""", (*ids,team_id,team_id,cutoff,cutoff,cutoff)).fetchall()
+            for match in values:
+                is_a = match["team_a_id"] == team_id
+                recent.append({
+                    "reference": f"history:{side}:{match['match_id']}", "matchId": match["match_id"],
+                    "team": row[f"{side}_name"], "opponent": match["name_b"] if is_a else match["name_a"],
+                    "teamScore": int(match["team_a_maps"] if is_a else match["team_b_maps"]),
+                    "opponentScore": int(match["team_b_maps"] if is_a else match["team_a_maps"]),
+                    "playedAt": iso(match["played_at"]),
+                    "knownAt": max(iso(match["inserted_at"]),iso(match["known_source_at"])),
+                    "sourceUrl": match["known_source_url"],
+                })
+    except (sqlite3.Error, KeyError, TypeError, ValueError):
+        return None  # Optional explanation data cannot prevent formal sync.
+    return {"schemaVersion": "prematch-reader-evidence-v1", "cutoffAt": cutoff, "recentMatches": recent,
+            "limits": ["个人状态未证明对应最近观察的五人，不用于解释当前阵容。", "真实游戏版本、官方首发和实际选图未核实。"]} if recent else None
+
+
 def resolved_payload(connection: sqlite3.Connection, row: sqlite3.Row) -> dict[str, Any] | None:
     if row["status"] != "resolved" or not row["actual_winner_name"] or not row["actual_score"]:
         return None
@@ -531,7 +575,7 @@ def synchronize(
         prediction_id = str(row["prediction_id"])
         attempt(
             "predictions", prediction_id, "/api/automation/predictions",
-            {"prediction": prediction_payload(row)}, ai_timeout,
+            {"prediction": prediction_payload(row), "prematchContext": prematch_reader_context(connection,row)}, ai_timeout,
         )
         challenger = challengers.get(row["prediction_id"])
         if challenger:

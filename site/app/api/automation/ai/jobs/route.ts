@@ -25,6 +25,7 @@ import {
   reconcilePostmatchAiJobs,
   reconcilePrematchAiJobs,
   recoverStaleAiJobs,
+  saveAiRequestDiagnostic,
 } from '@/lib/prediction-store';
 
 export async function POST(request: Request) {
@@ -118,6 +119,8 @@ export async function POST(request: Request) {
           ? await analyzePrematch(env.DEEPSEEK_API_KEY, modelId, prediction, {
               packet: job.analysisPacket,
               promptVersion: job.promptVersion,
+              onDiagnostic: (record) =>
+                saveAiRequestDiagnostic(env.DB, job, record),
             })
           : job.stage === 'diagnosis'
             ? await analyzePostmatchModelDiagnosis(
@@ -130,10 +133,22 @@ export async function POST(request: Request) {
                 modelId,
                 prediction,
                 job.analysisPacket as AnalysisPacket,
-                job,
+                {
+                  ...job,
+                  onDiagnostic: (record) =>
+                    saveAiRequestDiagnostic(env.DB, job, record),
+                },
               );
       try {
-        if (job.stage === 'prematch') validatePrematchAnalysis(analyzed.output);
+        if (job.stage === 'prematch')
+          validatePrematchAnalysis(
+            analyzed.output,
+            job.promptVersion === 'vct-prematch-deepseek-v4-evidence1'
+              ? (job.analysisPacket as unknown as Parameters<
+                  typeof validatePrematchAnalysis
+                >[1])
+              : undefined,
+          );
         else if (job.stage === 'diagnosis')
           validateModelDiagnosis(
             analyzed.output,

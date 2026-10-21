@@ -1,6 +1,10 @@
 import type { PredictionSnapshot, PredictionRecord } from './vct-types.ts';
 import { postmatchPacketMatchesRecord } from './evidence-presentation.ts';
 import { readerInsights, validateReaderReview } from './reader-analysis.ts';
+import {
+  EVIDENCE_REVIEW_SCHEMA,
+  validateEvidenceArticle,
+} from './review-evidence.ts';
 
 // Descriptive match evidence, not causal attribution or a new model feature.
 export function teamResults(prediction: PredictionSnapshot) {
@@ -133,6 +137,15 @@ export function verifiedReaderReview(record: PredictionRecord) {
       packet.readerInsights,
       packet.evidenceReferences,
     );
+    if (
+      record.postmatchReview?.reader_evidence_version === EVIDENCE_REVIEW_SCHEMA
+    )
+      validateEvidenceArticle(
+        record.postmatchReview as unknown as Record<string, unknown>,
+        packet.readerInsights,
+        [record.teamA, record.teamB],
+        packet.evidenceReferences,
+      );
     return review;
   } catch {
     return null;

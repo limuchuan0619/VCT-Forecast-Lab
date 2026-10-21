@@ -29,10 +29,17 @@ const factorCopy: Record<string, [string, string]> = {
   bo_experience: ['长系列赛经验', '此前对本场赛制的适应评估'],
 };
 export function prematchReasons(record: PredictionSnapshot) {
+  const samples = (map: PredictionSnapshot['maps'][number]) =>
+    Array.isArray(map.samples) &&
+    map.samples.length === 2 &&
+    map.samples.every((n) => Number.isInteger(n) && n >= 0)
+      ? map.samples
+      : null;
   const ranked = record.factors
     .filter(
       (f) =>
         factorCopy[f.key] &&
+        f.key !== 'player_form' &&
         Number.isFinite(f.probabilityPoints) &&
         Math.abs(f.probabilityPoints) >= 0.05,
     )
@@ -53,17 +60,24 @@ export function prematchReasons(record: PredictionSnapshot) {
   const knownRefs = new Set([
     ...record.factors.map((f) => `factor:${f.key}`),
     ...record.maps.map((m) => `map:${m.map}`),
+    ...(saved.prematchContext?.recentMatches.map((m) => m.reference) ?? []),
   ]);
   const reasons = selected.map((f) => {
     const claim = aiOnTime
-      ? saved.prematchAnalysis?.key_factors.find(
+      ? saved.prematchAnalysis?.key_factors?.find(
           (item) =>
-            item.factor === f.key &&
+            (item.factor === f.key ||
+              (item.evidence_ids?.filter(
+                (id) => typeof id === 'string' && id.startsWith('factor:'),
+              ).length === 1 &&
+                item.evidence_ids.includes(`factor:${f.key}`))) &&
             item.direction ===
               (f.probabilityPoints > 0 ? 'team_a' : 'team_b') &&
             item.evidence_ids?.length &&
             item.evidence_ids.every((id) => knownRefs.has(id)) &&
-            item.claim &&
+            typeof item.claim === 'string' &&
+            item.claim.trim() &&
+            item.claim.length <= 360 &&
             !/factor:|rating_|normalized|\b(?:ACS|ADR|KAST|Rating|Patch)\b|\d+\.\d{2,}|连胜|击败|战胜|首发|指挥|心理|克制/.test(
               item.claim,
             ),
@@ -79,7 +93,12 @@ export function prematchReasons(record: PredictionSnapshot) {
     return {
       key: f.key,
       title: factorCopy[f.key][0],
-      text: claim ?? text,
+      text:
+        claim
+          ?.replace(/近期状态因子/g, '近期表现的赛前评估')
+          .replace(/因子/g, '这项评估')
+          .replace(/评分/g, '评估') ?? text,
+      source: claim ? ('ai' as const) : ('data' as const),
       points: f.probabilityPoints,
     };
   });
@@ -89,22 +108,30 @@ export function prematchReasons(record: PredictionSnapshot) {
         Number.isFinite(m.teamAProbability) &&
         m.teamAProbability > 0 &&
         m.teamAProbability < 1 &&
-        Math.abs(m.teamAProbability - 0.5) > 0.05,
+        m.teamAProbability !== 0.5,
     )
     .toSorted(
       (a, b) =>
+        Number(!!samples(b) && Math.min(...samples(b)!) >= 10) -
+          Number(!!samples(a) && Math.min(...samples(a)!) >= 10) ||
         Math.abs(b.teamAProbability - 0.5) - Math.abs(a.teamAProbability - 0.5),
     )
-    .slice(0, 2)
+    .slice(0, 3)
     .map(
       (m) =>
-        `${m.map}：赛前更看好 ${m.teamAProbability > 0.5 ? record.teamA : record.teamB}（${(Math.max(m.teamAProbability, 1 - m.teamAProbability) * 100).toFixed(1)}%）。${m.samples ? `双方分别参考了 ${m.samples[0]} 和 ${m.samples[1]} 场地图记录${Math.min(...m.samples) < 5 ? '，场次较少，判断需谨慎' : ''}。` : '没有保存参考场次，判断需谨慎。'}`,
+        `${m.map}：${Math.abs(m.teamAProbability - 0.5) < 0.03 ? '双方接近五五开' : `模型略偏向 ${m.teamAProbability > 0.5 ? record.teamA : record.teamB}`}（${record.teamA} ${(m.teamAProbability * 100).toFixed(1)}%）。${samples(m) ? `双方分别参考了 ${samples(m)![0]} 和 ${samples(m)![1]} 场地图记录${Math.min(...samples(m)!) < 10 ? '，样本偏少，暂不足以确认地图优势' : ''}。` : '没有保存参考场次，判断需谨慎。'}`,
     );
   return {
     reasons,
     maps,
+    source:
+      reasons.length && reasons.every((reason) => reason.source === 'ai')
+        ? 'AI 解释 · 依据赛前保存的评估'
+        : reasons.some((reason) => reason.source === 'ai')
+          ? 'AI 解释与赛前数据说明'
+          : '赛前数据说明 · 当前没有可采用的 AI 解释',
     limit:
-      '这里保留的是赛前评估。若没有保存近期具体对手、官方首发或真实游戏版本，便不据此补写连胜、首发变化或版本适应的故事。',
+      '这份说明依据赛前保存的资料。未核实的首发、游戏版本与战术信息不作推断；选手状态未能确认对应最近观察的五人时，不用于解释当前阵容。',
   };
 }
 const nameKey = (value: string) =>

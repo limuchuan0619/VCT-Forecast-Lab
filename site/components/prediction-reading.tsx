@@ -4,6 +4,26 @@ export function PredictionReading({ record }: { record: PredictionRecord }) {
   const reading = prematchReasons(record);
   return (
     <div className="reader-prose">
+      <p className="reader-note">{reading.source}</p>
+      {!!record.prematchContext?.recentMatches.length && (
+        <details className="reader-disclosure">
+          <summary>查看当时参考的近期比赛</summary>
+          {record.prematchContext.recentMatches.map((match) => (
+            <p key={match.reference}>
+              {match.team} {match.teamScore}:{match.opponentScore}{' '}
+              {match.opponent}
+              {' · '}
+              {new Date(match.playedAt).toLocaleDateString('zh-CN', {
+                timeZone: 'Asia/Shanghai',
+              })}{' '}
+              <a href={match.sourceUrl} target="_blank" rel="noreferrer">
+                比赛资料 ↗
+              </a>
+            </p>
+          ))}
+          <p className="reader-note">这里只保留预测保存之前已知的比赛资料。</p>
+        </details>
+      )}
       {reading.reasons.length ? (
         reading.reasons.map((reason) => (
           <section className="plain-reason" key={reason.key}>

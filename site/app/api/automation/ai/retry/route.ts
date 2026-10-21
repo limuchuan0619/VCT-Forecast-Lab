@@ -4,9 +4,9 @@ import { isAutomationAuthorized } from '@/lib/automation-auth';
 import { analyzePostmatchR2, deepSeekModel } from '@/lib/deepseek';
 import { buildAnalysisPacket, validateR2Analysis } from '@/lib/ai-reliability';
 import {
-  EDITORIAL_REVIEW_PROMPT,
-  EDITORIAL_REVIEW_SCHEMA,
-} from '@/lib/review-editorial';
+  EVIDENCE_REVIEW_PROMPT,
+  EVIDENCE_REVIEW_SCHEMA,
+} from '@/lib/review-evidence';
 import {
   ensurePostmatchAiJob,
   ensurePrematchAiJob,
@@ -69,8 +69,8 @@ export async function POST(request: Request) {
         prediction,
         packet,
         {
-          promptVersion: EDITORIAL_REVIEW_PROMPT,
-          schemaVersion: EDITORIAL_REVIEW_SCHEMA,
+          promptVersion: EVIDENCE_REVIEW_PROMPT,
+          schemaVersion: EVIDENCE_REVIEW_SCHEMA,
         },
       );
       let validationError: string | null = null;

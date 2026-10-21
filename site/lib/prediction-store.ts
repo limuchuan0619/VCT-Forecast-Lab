@@ -26,6 +26,8 @@ import {
   sha256,
 } from './ai-reliability';
 import { prematchInput } from './deepseek';
+import { validatedPrematchContext } from './prematch-context.ts';
+import type { PrematchReaderContext } from './prematch-context.ts';
 import {
   buildDiagnosisPacket,
   DIAGNOSIS_JOB_PROMPT_VERSION,
@@ -116,7 +118,7 @@ function fromRow(row: PredictionRow): PredictionSnapshot {
 }
 
 function recordFromRow(row: PredictionRow): PredictionRecord {
-  return {
+  const record: PredictionRecord = {
     ...fromRow(row),
     prematchAiCreatedAt: row.prematch_ai_created_at
       ? asString(row.prematch_ai_created_at)
@@ -138,6 +140,15 @@ function recordFromRow(row: PredictionRow): PredictionRecord {
       : null,
     resultCorrectionCount: Number(row.result_correction_count ?? 0),
   };
+  const packet = parseJson<Record<string, unknown>>(
+    row.prematch_packet_json,
+    {},
+  );
+  record.prematchContext = validatedPrematchContext(
+    packet.reader_context,
+    record,
+  );
+  return record;
 }
 
 function aiJobFromRow(row: PredictionRow): AiAnalysisJobPublic & {
@@ -183,6 +194,8 @@ function aiJobFromRow(row: PredictionRow): AiAnalysisJobPublic & {
 }
 
 const predictionRecordSelect = `SELECT p.*,
+  (SELECT analysis_packet_json FROM ai_analysis_jobs WHERE prediction_id=p.id AND stage='prematch'
+    ORDER BY datetime(created_at) DESC LIMIT 1) AS prematch_packet_json,
   (SELECT created_at FROM ai_analyses WHERE prediction_id=p.id AND stage='prematch' AND status='complete'
     ORDER BY datetime(created_at) DESC LIMIT 1) AS prematch_ai_created_at,
   (SELECT model_id FROM ai_analyses WHERE prediction_id=p.id AND stage='prematch' AND status='complete'
@@ -1099,7 +1112,7 @@ export async function latestAiAnalysisStatus(
   stage: 'prematch' | 'postmatch',
 ): Promise<string | null> {
   const row = await db
-    .prepare(`SELECT status FROM ai_analyses WHERE prediction_id=? AND stage=?
+    .prepare(`SELECT status FROM ai_analyses WHERE prediction_id=? AND stage=? AND status!='diagnostic'
     ORDER BY datetime(created_at) DESC LIMIT 1`)
     .bind(predictionId, stage)
     .first<Record<string, unknown>>();
@@ -1211,6 +1224,7 @@ export async function ensurePostmatchAiJob(
   const hashed = await packetWithHashes(prediction);
   if (
     schemaVersion !== POSTMATCH_JOB_SCHEMA_VERSION &&
+    schemaVersion !== 'v1.4c-reader2-postmatch-analysis-v11' &&
     schemaVersion !== EDITORIAL_REVIEW_SCHEMA
   ) {
     delete hashed.packet.readerInsights;
@@ -1264,8 +1278,8 @@ export async function refreshReaderReview(
   // Never infer permission from a deployment or a page view. Called only by the
   // authenticated explicit single-record refresh action, not reconciliation.
   const result = await ensurePostmatchAiJob(db, prediction, modelId, {
-    promptVersion: EDITORIAL_REVIEW_PROMPT,
-    schemaVersion: EDITORIAL_REVIEW_SCHEMA,
+    promptVersion: POSTMATCH_JOB_PROMPT_VERSION,
+    schemaVersion: POSTMATCH_JOB_SCHEMA_VERSION,
   });
   // Explicit authenticated refresh after a transport fix may resume the same
   // timed-out reader job. Never reset attempts, replace its frozen packet, or
@@ -1298,6 +1312,7 @@ export async function ensurePrematchAiJob(
   db: D1Database,
   prediction: PredictionSnapshot,
   modelId: string,
+  readerContext?: PrematchReaderContext | null,
 ): Promise<{ created: boolean; job: ReturnType<typeof aiJobFromRow> }> {
   if (prediction.source && !prediction.source.startsWith('system'))
     throw new Error('ai_job_system_prediction_required');
@@ -1319,7 +1334,7 @@ export async function ensurePrematchAiJob(
     .bind(logicalKey)
     .first<PredictionRow>();
   if (existing) return { created: false, job: aiJobFromRow(existing) };
-  const packet = prematchInput(prediction);
+  const packet = prematchInput(prediction, readerContext);
   const [rawEvidenceHash, analysisPacketHash] = await Promise.all([
     sha256(prediction.evidence),
     sha256(packet),
@@ -1681,6 +1696,35 @@ export async function completeAiJob(
     );
   }
   await db.batch(statements);
+}
+
+// Private append-only diagnostics reuse the existing analysis ledger. Public
+// article queries accept only status='complete', never these raw responses.
+export async function saveAiRequestDiagnostic(
+  db: D1Database,
+  job: ReturnType<typeof aiJobFromRow>,
+  record: Record<string, unknown>,
+) {
+  await db
+    .prepare(`INSERT INTO ai_analyses(id,prediction_id,stage,provider,model_id,prompt_version,status,output_json,error_code,direct_promotion_allowed,created_at)
+    VALUES(?,?,?,'deepseek',?,?,'diagnostic',?,?,0,?)`)
+    .bind(
+      crypto.randomUUID(),
+      job.predictionId,
+      job.stage,
+      job.modelId,
+      job.promptVersion,
+      JSON.stringify({
+        schemaVersion: 'ai-private-attempt-v1',
+        jobId: job.id,
+        attempt: job.attemptCount,
+        evidenceHash: job.analysisPacketHash,
+        ...record,
+      }),
+      typeof record.error === 'string' ? record.error.slice(0, 128) : null,
+      new Date().toISOString(),
+    )
+    .run();
 }
 
 export async function failAiJob(

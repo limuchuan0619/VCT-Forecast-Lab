@@ -18,6 +18,17 @@ import {
 } from './review-editorial.ts';
 import type { EditorialPlan } from './review-editorial.ts';
 import {
+  EVIDENCE_REVIEW_PROMPT,
+  EVIDENCE_REVIEW_SCHEMA,
+  reviewObservations,
+  evidenceSelectionSchema,
+  assembleEvidenceReview,
+  evidenceReviewInstruction,
+} from './review-evidence.ts';
+import type { EvidenceSelection } from './review-evidence.ts';
+import { validatedPrematchContext } from './prematch-context.ts';
+import type { PrematchReaderContext } from './prematch-context.ts';
+import {
   POSTMATCH_JOB_PROMPT_VERSION,
   sha256,
   POSTMATCH_R2_REASONING_EFFORT,
@@ -781,6 +792,8 @@ async function requestJson<T>(options: {
     | 'high'
     | 'xhigh'
     | 'max';
+  phase?: string;
+  onDiagnostic?: (record: Record<string, unknown>) => Promise<void>;
 }): Promise<{
   output: T;
   modelId: string;
@@ -809,6 +822,9 @@ async function requestJson<T>(options: {
     () => controller.abort(),
     options.timeoutMs ?? 55_000,
   );
+  let receivedText: string | null = null;
+  let receivedStatus: number | null = null;
+  let requestFailure: string | null = null;
   try {
     let response: Response;
     try {
@@ -836,6 +852,8 @@ async function requestJson<T>(options: {
       );
     }
     const responseText = await response.text();
+    receivedText = responseText;
+    receivedStatus = response.status;
     if (!response.ok)
       throw new DeepSeekRequestError(`deepseek_http_${response.status}`, {
         code: `deepseek_http_${response.status}`,
@@ -904,12 +922,46 @@ async function requestJson<T>(options: {
         payloadBytes,
       },
     };
+  } catch (error) {
+    requestFailure =
+      error instanceof Error ? error.message : 'unknown_request_failure';
+    throw error;
   } finally {
     clearTimeout(timeout);
+    if (options.onDiagnostic) {
+      try {
+        await options.onDiagnostic({
+          phase: options.phase ?? 'request',
+          promptVersion: options.promptVersion,
+          requestStartedAt,
+          requestCompletedAt: new Date().toISOString(),
+          httpStatus: receivedStatus,
+          requestHash: await sha256(requestBody),
+          inputHash: await sha256(options.input),
+          schemaHash: await sha256(options.schema),
+          instructionHash: await sha256(commonRules),
+          model: options.modelId,
+          reasoningEffort: options.reasoningEffort ?? 'high',
+          timeoutMs: options.timeoutMs ?? 55000,
+          maxOutputTokens: options.maxOutputTokens ?? 6000,
+          payloadBytes,
+          error: requestFailure,
+          responseHash:
+            receivedText === null ? null : await sha256(receivedText),
+          rawResponse: receivedText?.slice(0, 60000) ?? null,
+          responseTruncated: !!receivedText && receivedText.length > 60000,
+        });
+      } catch {
+        /* Observability failure never changes a model probability or settlement. */
+      }
+    }
   }
 }
 
-export function prematchInput(prediction: PredictionSnapshot) {
+export function prematchInput(
+  prediction: PredictionSnapshot,
+  readerContext?: PrematchReaderContext | null,
+) {
   return {
     stage: 'prematch',
     prediction_id: prediction.id,
@@ -933,8 +985,11 @@ export function prematchInput(prediction: PredictionSnapshot) {
     })),
     score_distribution: prediction.scoreDistribution,
     evidence_boundary: prediction.evidence,
+    ...(readerContext
+      ? { reader_context: validatedPrematchContext(readerContext, prediction) }
+      : {}),
     reader_guidance:
-      '用普通中文解释两三个主要理由、反向信息与地图判断。评分不是具体战绩：输入没有近期对手、连胜、官方首发或真实版本时不得补写这些故事。仅有模型分数时说明这是赛前评估，不把它写成已确认的比赛事实；不输出内部英文键和评分小数。候选地图不是实际BP，结合保存的胜率和样本提示，不作确定承诺。',
+      '用普通中文解释两三个主要理由、反向信息与地图判断。key_factors.factor逐字使用factor_contributions的key，evidence_ids完整复制。reader_context若存在，仅引用其中已在锁定前入库的近期对手、比分和时间，不据此声称未来或官方首发。player_form未确认对应最近观察五人，不解释成当前选手状态；真实Patch未知不称版本适应已证实。评分不是具体战绩，输入没有的数据不得补故事。不输出内部英文键和评分小数。候选地图不是实际BP；地图概率不是历史胜率，已有小样本收缩仍需说明资料有限。',
   };
 }
 
@@ -942,7 +997,11 @@ export function analyzePrematch(
   apiKey: string,
   modelId: string,
   prediction: PredictionSnapshot,
-  saved?: { packet: object; promptVersion: string },
+  saved?: {
+    packet: object;
+    promptVersion: string;
+    onDiagnostic?: (record: Record<string, unknown>) => Promise<void>;
+  },
 ) {
   return requestJson<PrematchAiAnalysis>({
     apiKey,
@@ -954,6 +1013,8 @@ export function analyzePrematch(
     reasoningEffort: 'none',
     maxOutputTokens: 3_600,
     timeoutMs: 55_000,
+    phase: 'prematch',
+    onDiagnostic: saved?.onDiagnostic,
   });
 }
 
@@ -1000,8 +1061,139 @@ export async function analyzePostmatchR2(
     promptVersion: string;
     schemaVersion: string;
     attemptCount?: number;
+    onDiagnostic?: (record: Record<string, unknown>) => Promise<void>;
   },
 ) {
+  if (versions?.schemaVersion === EVIDENCE_REVIEW_SCHEMA) {
+    if (!packet.readerInsights || !packet.teamOutcomes)
+      throw new Error('schema_evidence_reader_packet_required');
+    const observations = reviewObservations(packet.readerInsights, [
+      prediction.teamA,
+      prediction.teamB,
+    ]);
+    const requests: DeepSeekRequestMeta[] = [];
+    let rejected: unknown;
+    let validationError = '';
+    const deadline = Date.now() + 65000;
+    for (let pass = 0; pass < 2; pass++) {
+      const response = await requestJson<EvidenceSelection>({
+        apiKey,
+        modelId,
+        promptVersion: versions.promptVersion ?? EVIDENCE_REVIEW_PROMPT,
+        schemaName: 'vct_evidence_selected_review_v1',
+        schema: evidenceSelectionSchema(observations, packet.readerInsights),
+        input: {
+          stage: 'postmatch',
+          instruction:
+            evidenceReviewInstruction + '\n' + VALORANT_GLOSSARY_INSTRUCTION,
+          teams: [prediction.teamA, prediction.teamB],
+          observations,
+          missingEvidence: packet.missingEvidence,
+          ...(pass
+            ? {
+                rejected_selection: rejected,
+                validation_error: validationError,
+                repair_instruction:
+                  '只修正指出的引用或解释错误，保留原证据；不能证明的判断删去，不增加数字和比赛过程。',
+              }
+            : {}),
+        },
+        reasoningEffort: 'none',
+        maxOutputTokens: 2800,
+        timeoutMs: Math.max(
+          1,
+          Math.min(pass ? 25000 : 35000, deadline - Date.now()),
+        ),
+        phase: pass ? 'article_repair' : 'article',
+        onDiagnostic: versions.onDiagnostic,
+      });
+      requests.push(response.meta);
+      try {
+        const article = assembleEvidenceReview(
+          response.output,
+          observations,
+          packet.readerInsights,
+          packet.evidenceReferences,
+        );
+        return {
+          ...response,
+          meta: {
+            ...response.meta,
+            requestStartedAt: requests[0].requestStartedAt,
+            latencyMs:
+              Date.parse(response.meta.requestCompletedAt) -
+              Date.parse(requests[0].requestStartedAt),
+            payloadBytes: requests.reduce((n, r) => n + r.payloadBytes, 0),
+            inputTokens: requests.every((r) => r.inputTokens !== null)
+              ? requests.reduce((n, r) => n + r.inputTokens!, 0)
+              : null,
+            outputTokens: requests.every((r) => r.outputTokens !== null)
+              ? requests.reduce((n, r) => n + r.outputTokens!, 0)
+              : null,
+          },
+          output: {
+            stage: 'postmatch',
+            one_line_summary: article.summary,
+            what_happened: [
+              {
+                claim: `${prediction.actualWinner} 获胜，比分为 ${prediction.actualScore}。`,
+                evidence_ids: ['fact:result_evidence'],
+              },
+            ],
+            three_signals: [
+              {
+                signal: '赛前判断保留原记录，本篇依据已确认的比赛表现。',
+                relation: 'neutral',
+                evidence_ids: ['prediction:locked_snapshot'],
+              },
+            ],
+            map_reviews: [],
+            player_outliers: [],
+            hypotheses: [],
+            missing_evidence: packet.missingEvidence,
+            research_queue: null,
+            team_reviews: packet.teamOutcomes.map((t) => ({
+              team: t.team,
+              outcome: t.outcome,
+              strengths: [],
+              weaknesses: [],
+              possible_explanation: null,
+            })),
+            direct_probability_change_allowed: false,
+            direct_training_allowed: false,
+            direct_promotion_allowed: false,
+            reader_review: article,
+            reader_evidence_selection: response.output,
+            reader_evidence_version: EVIDENCE_REVIEW_SCHEMA,
+            reader_generation_mode: 'evidence_selected_commentary',
+            reader_provider_requests: requests,
+          },
+        };
+      } catch (error) {
+        rejected = response.output;
+        validationError =
+          error instanceof Error ? error.message : 'schema_evidence_validation';
+        try {
+          await versions.onDiagnostic?.({
+            phase: 'article_validation',
+            error: validationError,
+            rejectedOutput: rejected,
+            requestHash: await sha256(response.output),
+            requestCompletedAt: new Date().toISOString(),
+          });
+        } catch {}
+        if (pass || deadline - Date.now() < 5000)
+          throw Object.assign(new Error(validationError), {
+            code: validationError,
+            stage: 'schema',
+            retryable: false,
+            rejectedOutput: rejected,
+            ...response.meta,
+          });
+      }
+    }
+    throw new Error('schema_evidence_attempt_exhausted');
+  }
   const teamReview = packet.reviewFocus === 'team_outcomes_v1';
   const reader = Boolean(packet.readerInsights);
   const editorial = versions?.schemaVersion === EDITORIAL_REVIEW_SCHEMA;

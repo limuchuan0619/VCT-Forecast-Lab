@@ -156,6 +156,8 @@ export type PrematchAiAnalysis = {
 export type PostmatchAiReview = {
   stage: 'postmatch';
   reader_review?: import('./reader-analysis').ReaderReview;
+  reader_evidence_version?: string;
+  reader_evidence_selection?: import('./review-evidence').EvidenceSelection;
   summary?: string;
   team_reviews?: Array<{
     team: string;
@@ -360,6 +362,7 @@ export type PostmatchModelDiagnosis = {
 };
 
 export type PredictionRecord = PredictionSnapshot & {
+  prematchContext?: import('./prematch-context').PrematchReaderContext | null;
   prematchAiCreatedAt?: string | null;
   prematchAiModelId?: string | null;
   challenger?: ChallengerPrediction | null;

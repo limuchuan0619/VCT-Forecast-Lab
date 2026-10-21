@@ -304,6 +304,10 @@ test('single-record editorial refresh appends once and never upgrades automatic 
       db,
       prediction,
       'isolated-provider',
+      {
+        promptVersion: 'vct-postmatch-deepseek-v14-reader2',
+        schemaVersion: 'v1.4c-reader2-postmatch-analysis-v11',
+      },
     );
     const old = database.raw.prepare('SELECT * FROM ai_analysis_jobs').get();
     assert.equal(old!.prompt_version, 'vct-postmatch-deepseek-v14-reader2');
@@ -342,6 +346,47 @@ test('single-record editorial refresh appends once and never upgrades automatic 
       (await store.ensurePostmatchAiJob(db, prediction, 'isolated-provider'))
         .created,
       false,
+    );
+  } finally {
+    database.raw.close();
+  }
+});
+
+test('private request diagnostics never become completed articles or change a frozen prediction', async () => {
+  const { database, db, prediction } = await fixture();
+  try {
+    const registered = await store.ensurePostmatchAiJob(
+      db,
+      prediction,
+      'isolated-provider',
+    );
+    const before = database.raw.prepare('SELECT * FROM predictions').all();
+    await store.saveAiRequestDiagnostic(db, registered.job as any, {
+      phase: 'article',
+      rawResponse: '{"output_text":"rejected"}',
+      requestHash: 'a'.repeat(64),
+    });
+    const diagnostic = database.raw
+      .prepare("SELECT * FROM ai_analyses WHERE status='diagnostic'")
+      .get();
+    assert.ok(diagnostic);
+    assert.equal(
+      await store.latestAiAnalysisStatus(db, prediction.id, 'postmatch'),
+      null,
+    );
+    assert.equal(
+      database.raw
+        .prepare("SELECT COUNT(*) n FROM ai_analyses WHERE status='complete'")
+        .get()!.n,
+      0,
+    );
+    assert.deepEqual(
+      database.raw.prepare('SELECT * FROM predictions').all(),
+      before,
+    );
+    assert.equal(
+      (await store.latestAiJob(db, prediction.id, 'postmatch'))!.status,
+      'PENDING',
     );
   } finally {
     database.raw.close();

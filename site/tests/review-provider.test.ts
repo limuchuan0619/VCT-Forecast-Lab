@@ -29,6 +29,8 @@ registerHooks({
 });
 const { analyzePostmatchR2, analyzePrematch } =
   await import('../lib/deepseek.ts');
+const LEGACY_PROMPT = 'vct-postmatch-deepseek-v14-reader2';
+const LEGACY_SCHEMA = 'v1.4c-reader2-postmatch-analysis-v11';
 
 test('reader draft and evidence edit remain bounded; legacy retries retain their contract', async () => {
   const original = globalThis.fetch;
@@ -62,11 +64,11 @@ test('reader draft and evidence edit remain bounded; legacy retries retain their
       record,
       record.postmatchEvidence!,
       {
-        promptVersion: POSTMATCH_JOB_PROMPT_VERSION,
-        schemaVersion: POSTMATCH_JOB_SCHEMA_VERSION,
+        promptVersion: LEGACY_PROMPT,
+        schemaVersion: LEGACY_SCHEMA,
       },
     );
-    assert.equal(response.promptVersion, POSTMATCH_JOB_PROMPT_VERSION);
+    assert.equal(response.promptVersion, LEGACY_PROMPT);
     assert.equal(bodies[0].reasoning.effort, 'none');
     assert.equal(bodies[0].max_output_tokens, 4500);
     assert.equal(bodies[1].max_output_tokens, 3500);
@@ -120,8 +122,8 @@ test('reader draft and evidence edit remain bounded; legacy retries retain their
       record,
       record.postmatchEvidence!,
       {
-        promptVersion: POSTMATCH_JOB_PROMPT_VERSION,
-        schemaVersion: POSTMATCH_JOB_SCHEMA_VERSION,
+        promptVersion: LEGACY_PROMPT,
+        schemaVersion: LEGACY_SCHEMA,
         attemptCount: 2,
       },
     );
@@ -197,7 +199,7 @@ test('explicit editorial trial plans from evidence before writing; default autom
     assert.equal(JSON.stringify(record), before);
     assert.equal(
       POSTMATCH_JOB_PROMPT_VERSION,
-      'vct-postmatch-deepseek-v14-reader2',
+      'vct-postmatch-deepseek-v18-evidence1',
     );
   } finally {
     globalThis.fetch = original;

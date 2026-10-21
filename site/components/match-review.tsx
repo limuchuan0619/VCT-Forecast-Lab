@@ -48,6 +48,14 @@ export function MatchReview({ record }: { record: PredictionRecord }) {
     );
   return (
     <article className="reader-prose match-review-primary">
+      {record.postmatchJob && record.postmatchJob.status !== 'SUCCESS' && (
+        <p className="reader-note">
+          下面保留此前生成的复盘。
+          {record.postmatchJob.status === 'FINAL_FAILED'
+            ? '新版解读暂未完成，当前展示的仍是此前内容。'
+            : '新版解读正在整理，完成核验后才会替换。'}
+        </p>
+      )}
       <p className="reading-lead">{plainText(ai.summary, record)}</p>
       {!!ai.reasons.length && (
         <section className="reading-section">

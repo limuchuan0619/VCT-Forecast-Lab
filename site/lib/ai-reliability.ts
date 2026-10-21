@@ -6,12 +6,15 @@ import type {
 import { readerInsights, validateReaderReview } from './reader-analysis.ts';
 import type { ReaderInsights } from './reader-analysis.ts';
 import { CN_MAPS } from './valorant-terms.ts';
+import {
+  EVIDENCE_REVIEW_PROMPT,
+  EVIDENCE_REVIEW_SCHEMA,
+  validateEvidenceArticle,
+} from './review-evidence.ts';
 
-export const POSTMATCH_JOB_PROMPT_VERSION =
-  'vct-postmatch-deepseek-v14-reader2';
-export const POSTMATCH_JOB_SCHEMA_VERSION =
-  'v1.4c-reader2-postmatch-analysis-v11';
-export const PREMATCH_JOB_PROMPT_VERSION = 'vct-prematch-deepseek-v3-reader1';
+export const POSTMATCH_JOB_PROMPT_VERSION = EVIDENCE_REVIEW_PROMPT;
+export const POSTMATCH_JOB_SCHEMA_VERSION = EVIDENCE_REVIEW_SCHEMA;
+export const PREMATCH_JOB_PROMPT_VERSION = 'vct-prematch-deepseek-v4-evidence1';
 export const PREMATCH_JOB_SCHEMA_VERSION = 'v1.4c-r2.2-prematch-analysis-v1';
 export const RETRY_POLICY_VERSION = 'v1.4c-r2-retry-v1';
 // DeepSeek counts hidden reasoning and visible JSON against the same output
@@ -932,10 +935,29 @@ export function validateR2Analysis(
       packet.readerInsights,
       packet.evidenceReferences,
     );
+  if (
+    packet?.readerInsights &&
+    item.reader_evidence_version === EVIDENCE_REVIEW_SCHEMA
+  )
+    validateEvidenceArticle(
+      item,
+      packet.readerInsights,
+      [packet.prediction.teamA, packet.prediction.teamB],
+      packet.evidenceReferences,
+    );
 }
 
 export function validatePrematchAnalysis(
   value: unknown,
+  input?: {
+    factor_contributions?: Array<{ key: string; evidence_id: string }>;
+    map_probabilities?: Array<{
+      map: string;
+      evidence_id: string;
+      teamAProbability: number;
+    }>;
+    reader_context?: { recentMatches?: Array<{ reference: string }> };
+  },
 ): asserts value is Record<string, unknown> {
   if (!value || typeof value !== 'object')
     throw new Error('schema_prematch_object_required');
@@ -961,4 +983,37 @@ export function validatePrematchAnalysis(
   }
   if (item.direct_promotion_allowed !== false)
     throw new Error('schema_prematch_governance_const');
+  if (input) {
+    const factors = input.factor_contributions ?? [],
+      maps = input.map_probabilities ?? [];
+    const refs = new Set([
+      ...factors.map((f) => f.evidence_id),
+      ...maps.map((m) => m.evidence_id),
+      ...(input.reader_context?.recentMatches?.map((m) => m.reference) ?? []),
+    ]);
+    for (const factor of item.key_factors as Array<Record<string, unknown>>) {
+      const source = factors.find((f) => f.key === factor.factor);
+      if (
+        !source ||
+        !Array.isArray(factor.evidence_ids) ||
+        !factor.evidence_ids.includes(source.evidence_id) ||
+        factor.evidence_ids.some((id) => !refs.has(id)) ||
+        typeof factor.claim !== 'string' ||
+        !['team_a', 'team_b', 'neutral'].includes(String(factor.direction))
+      )
+        throw new Error('schema_prematch_factor_binding');
+    }
+    for (const map of item.map_analysis as Array<Record<string, unknown>>) {
+      const source = maps.find((m) => m.map === map.map);
+      if (
+        !source ||
+        typeof map.team_a_probability !== 'number' ||
+        Math.abs(map.team_a_probability - source.teamAProbability) > 1e-6 ||
+        !Array.isArray(map.evidence_ids) ||
+        !map.evidence_ids.includes(source.evidence_id) ||
+        map.evidence_ids.some((id) => !refs.has(id))
+      )
+        throw new Error('schema_prematch_map_binding');
+    }
+  }
 }

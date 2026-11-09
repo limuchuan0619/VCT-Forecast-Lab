@@ -1,0 +1,327 @@
+{
+  "schema_version": "portfolio-evaluation-snapshot-v1",
+  "snapshot_at": "2026-11-09T06:43:14.6019314Z",
+  "time_zone": "Asia/Shanghai",
+  "sources": [
+    {
+      "url": "https://vct-forecast-lab.limuchuan128.chatgpt.site/api/public/health",
+      "read_at": "2026-11-09T06:43:11.2044464Z",
+      "status": 200
+    },
+    {
+      "url": "https://vct-forecast-lab.limuchuan128.chatgpt.site/api/public/overview",
+      "read_at": "2026-11-09T06:43:14.6019314Z",
+      "status": 200
+    },
+    {
+      "url": "https://vct-prediction-cloud-runner-production.up.railway.app/healthz",
+      "read_at": "2026-11-09T06:43:15.2795497Z",
+      "status": 200
+    }
+  ],
+  "runtime": {
+    "site_data_mode": "LIVE",
+    "sync_status": "SUCCESS",
+    "last_successful_sync_at": "2026-11-09T06:36:34.507Z",
+    "metrics_trusted": true,
+    "system_predictions": 97,
+    "source_matches": 1777,
+    "source_teams": 256,
+    "regions": 4,
+    "published_result_rows": 83,
+    "quarantined_results": 1,
+    "coverage_indexes_complete": true,
+    "coverage_scope": "first_page_active_and_recent_source_events_not_all_real_world_matches",
+    "ai_reliability": {
+      "prematch": {
+        "health": "DEGRADED",
+        "attempted": 3,
+        "succeeded": 1,
+        "failed": 2,
+        "successRate": 0.3333333333333333,
+        "p50LatencyMs": 37561,
+        "p95LatencyMs": 51834,
+        "provider429": 0,
+        "provider5xx": 0,
+        "timeouts": 0,
+        "schemaFailures": 2,
+        "retrying": 0,
+        "orphanPredictions": 0
+      },
+      "postmatch": {
+        "health": "DEGRADED",
+        "attempted": 9,
+        "succeeded": 2,
+        "failed": 7,
+        "successRate": 0.2222222222222222,
+        "p50LatencyMs": 9507,
+        "p95LatencyMs": 11998,
+        "provider429": 0,
+        "provider5xx": 0,
+        "timeouts": 0,
+        "schemaFailures": 7,
+        "retrying": 0,
+        "orphanPredictions": 0
+      },
+      "diagnosis": {
+        "health": "DEGRADED",
+        "attempted": 9,
+        "succeeded": 6,
+        "failed": 3,
+        "successRate": 0.6666666666666666,
+        "p50LatencyMs": 11302,
+        "p95LatencyMs": 17768,
+        "provider429": 0,
+        "provider5xx": 0,
+        "timeouts": 0,
+        "schemaFailures": 3,
+        "retrying": 0,
+        "orphanPredictions": 0
+      },
+      "windowHours": 24
+    }
+  },
+  "prospective": {
+    "modelId": "logistic_c1_v1.4b_20260903",
+    "status": "SHADOW",
+    "phase": "PRELIMINARY",
+    "eligibleResolvedMatches": 34,
+    "gate": 100,
+    "promotionStatus": "EVALUATING",
+    "promotionEnabled": false,
+    "historicalEvaluationIncluded": false,
+    "metricIntegrity": {
+      "checked_matches": 34,
+      "invalid_matches": 0,
+      "reasons": {},
+      "repair_revisions": 12,
+      "schema_version": "v1.4c-r2.3-shadow-settlement-v1",
+      "status": "TRUSTED",
+      "valid_matches": 34
+    },
+    "metrics": {
+      "champion": {
+        "accuracy": 0.5588235294117647,
+        "brier": 0.24791715793532354,
+        "ece_10_bin": 0.03928391176470589,
+        "high_confidence_count": 1,
+        "log_loss": 0.6892981140140866,
+        "mean_probability_team_a": 0.5177073823529411
+      },
+      "logistic_c1": {
+        "accuracy": 0.6470588235294118,
+        "brier": 0.23560473042182128,
+        "ece_10_bin": 0.13123320353476015,
+        "high_confidence_count": 1,
+        "log_loss": 0.6640474425579863,
+        "mean_probability_team_a": 0.5036587621773762
+      }
+    },
+    "cohortEvaluation": {
+      "artifact_hash": "a3c7ef394b4a9476d70c318276f9fb835a8179a6201242eaf13adffb4cec0ff4",
+      "cohorts": [
+        {
+          "c1": {
+            "accuracy": 0,
+            "brier": 0.4135971893587305,
+            "ece_10_bin": 0.6431152224591877,
+            "high_confidence_count": 0,
+            "log_loss": 1.0303423012846502
+          },
+          "c1_minus_champion_brier": 0.17252993716273055,
+          "champion": {
+            "accuracy": 1,
+            "brier": 0.24106725219599998,
+            "ece_10_bin": 0.490986,
+            "high_confidence_count": 0,
+            "log_loss": 0.675279757898276
+          },
+          "cohort": "invitational:AMERICAS",
+          "ended_at": "2026-11-08T16:30:00+00:00",
+          "matches": 1,
+          "paired_bootstrap_95_percent": [
+            0.17252993716273055,
+            0.17252993716273055
+          ],
+          "primary_gate_contribution": 0,
+          "started_at": "2026-11-08T16:30:00+00:00",
+          "verdict": "PRELIMINARY_NO_PROMOTION_DECISION"
+        },
+        {
+          "c1": {
+            "accuracy": 0.6666666666666666,
+            "brier": 0.18418141169926525,
+            "ece_10_bin": 0.42534492842904326,
+            "high_confidence_count": 0,
+            "log_loss": 0.5590763858959046
+          },
+          "c1_minus_champion_brier": -0.025533037152068075,
+          "champion": {
+            "accuracy": 0.6666666666666666,
+            "brier": 0.2097144488513333,
+            "ece_10_bin": 0.4455393333333333,
+            "high_confidence_count": 0,
+            "log_loss": 0.6097000385493591
+          },
+          "cohort": "invitational:EMEA",
+          "ended_at": "2026-10-25T07:30:00+00:00",
+          "matches": 3,
+          "paired_bootstrap_95_percent": [
+            -0.09675863532596374,
+            0.05495401529778091
+          ],
+          "primary_gate_contribution": 0,
+          "started_at": "2026-10-24T06:30:00+00:00",
+          "verdict": "PRELIMINARY_NO_PROMOTION_DECISION"
+        },
+        {
+          "c1": {
+            "accuracy": 0.6470588235294118,
+            "brier": 0.23560473042182128,
+            "ece_10_bin": 0.13123320353476015,
+            "high_confidence_count": 1,
+            "log_loss": 0.6640474425579863
+          },
+          "c1_minus_champion_brier": -0.012312427513502281,
+          "champion": {
+            "accuracy": 0.5588235294117647,
+            "brier": 0.24791715793532354,
+            "ece_10_bin": 0.03928391176470589,
+            "high_confidence_count": 1,
+            "log_loss": 0.6892981140140866
+          },
+          "cohort": "primary_vct",
+          "ended_at": "2026-10-18T02:00:00+00:00",
+          "matches": 34,
+          "paired_bootstrap_95_percent": [
+            -0.034461763694094025,
+            0.008230995955885128
+          ],
+          "primary_gate_contribution": 34,
+          "started_at": "2026-09-24T05:00:00+00:00",
+          "verdict": "PRELIMINARY_NO_PROMOTION_DECISION"
+        },
+        {
+          "c1": {
+            "accuracy": 0.2,
+            "brier": 0.33539524317047836,
+            "ece_10_bin": 0.45642935503309245,
+            "high_confidence_count": 2,
+            "log_loss": 0.8686142819943349
+          },
+          "c1_minus_champion_brier": 0.05039787882227833,
+          "champion": {
+            "accuracy": 0.2,
+            "brier": 0.28499736434820006,
+            "ece_10_bin": 0.3894250000000001,
+            "high_confidence_count": 0,
+            "log_loss": 0.7628953885461385
+          },
+          "cohort": "qualification:AMERICAS",
+          "ended_at": "2026-11-08T17:00:00+00:00",
+          "matches": 5,
+          "paired_bootstrap_95_percent": [
+            -0.009153439727892492,
+            0.10994919737244915
+          ],
+          "primary_gate_contribution": 0,
+          "started_at": "2026-11-07T17:00:00+00:00",
+          "verdict": "PRELIMINARY_NO_PROMOTION_DECISION"
+        },
+        {
+          "c1": {
+            "accuracy": 0.6666666666666666,
+            "brier": 0.235400025735076,
+            "ece_10_bin": 0.12528290721685342,
+            "high_confidence_count": 2,
+            "log_loss": 0.6625726796165725
+          },
+          "c1_minus_champion_brier": -0.007285809002590657,
+          "champion": {
+            "accuracy": 0.42857142857142855,
+            "brier": 0.24268583473766667,
+            "ece_10_bin": 0.25938480952380955,
+            "high_confidence_count": 3,
+            "log_loss": 0.6749346528352961
+          },
+          "cohort": "qualification:CN",
+          "ended_at": "2026-11-01T04:00:00+00:00",
+          "matches": 21,
+          "paired_bootstrap_95_percent": [
+            -0.052499281139607425,
+            0.03983624672144853
+          ],
+          "primary_gate_contribution": 0,
+          "started_at": "2026-10-21T00:00:00+00:00",
+          "verdict": "PRELIMINARY_NO_PROMOTION_DECISION"
+        },
+        {
+          "c1": {
+            "accuracy": 0.6875,
+            "brier": 0.23814105385963485,
+            "ece_10_bin": 0.1920775372181919,
+            "high_confidence_count": 1,
+            "log_loss": 0.6689200854165092
+          },
+          "c1_minus_champion_brier": 0.018246051478134875,
+          "champion": {
+            "accuracy": 0.6875,
+            "brier": 0.21989500238149998,
+            "ece_10_bin": 0.216298125,
+            "high_confidence_count": 4,
+            "log_loss": 0.6296776287149114
+          },
+          "cohort": "secondary:EMEA",
+          "ended_at": "2026-11-08T12:00:00+00:00",
+          "matches": 16,
+          "paired_bootstrap_95_percent": [
+            -0.025790171534128048,
+            0.05689601083949104
+          ],
+          "primary_gate_contribution": 0,
+          "started_at": "2026-10-21T13:00:00+00:00",
+          "verdict": "PRELIMINARY_NO_PROMOTION_DECISION"
+        }
+      ],
+      "excluded": {
+        "secondary:EMEA:prediction_result_series_format_mismatch": 1
+      },
+      "feature_status_counts": {
+        "feature_unavailable": 64,
+        "imputed_team_mean": 4,
+        "observed": 732
+      },
+      "frozen_probabilities_reproduced": 81,
+      "historical_test_included": false,
+      "model_id": "logistic_c1_v1.4b_20260903",
+      "pending": {
+        "system_auto_qualification": 2,
+        "system_auto_secondary": 5
+      },
+      "promotion_enabled": false,
+      "retrained": false,
+      "schema_version": "frozen-c1-cohort-evaluation-v1",
+      "valid_resolved_matches": 80
+    }
+  },
+  "historical": {
+    "dataset_version": "v1.4b-c1-20260903",
+    "evaluation_date": "2026-09-03",
+    "scope": "one-time frozen historical Test; not rerun for this publication",
+    "split": {
+      "train": 650,
+      "validation": 150,
+      "test": 200
+    },
+    "metrics_source": "../../model/artifacts/logistic_c1_v1_4b_evaluation.json",
+    "verdict": "INCONCLUSIVE"
+  },
+  "policy": {
+    "cohorts_are_separate": true,
+    "primary_gate": 100,
+    "historical_test_included_in_prospective": false,
+    "automatic_retraining": false,
+    "automatic_promotion": false,
+    "accuracy_interval": "95% Wilson interval; descriptive only; assumes independent Bernoulli trials, match/team dependence is not accounted for"
+  }
+}

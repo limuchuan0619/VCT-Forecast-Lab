@@ -1,159 +1,129 @@
 # VCT Forecast Lab
 
-**一个把赛前判断保存下来、用真实赛果检验模型的无畏契约赛事预测产品。**
+**可追溯的 VALORANT 赛事预测与模型评估系统**
 
-An explainable VALORANT forecasting product with frozen pre-match predictions, real-result evaluation, and evidence-bounded AI reviews.
+从一场比赛的赛前判断，到一套模型的长期检验：保存当时可用的信息、锁定预测概率、核验真实赛果，再用同场对照判断模型是否值得改进。
 
-[体验网站](https://vct-forecast-lab.limuchuan128.chatgpt.site/) · [系统设计](docs/architecture.md) · [模型评估](docs/evaluation.md) · [代码入口](#系统结构与代码入口)
+An end-to-end forecasting system with point-in-time features, immutable pre-match predictions, prospective model evaluation, and evidence-linked AI analysis.
 
-![VCT Forecast Lab：赛前预测、赛后检验，配图为真实预测历史页面](docs/assets/product-overview.png)
+[在线体验](https://vct-forecast-lab.limuchuan128.chatgpt.site/) · [预测历史](https://vct-forecast-lab.limuchuan128.chatgpt.site/predictions) · [评估方法](docs/evaluation.md) · [系统设计](docs/architecture.md) · [验证记录](docs/verification.md)
 
-## 这个项目解决什么问题？
+## 项目概览
 
-比赛结束后，总能找到听起来合理的解释。更难的问题是：**赛前到底知道什么、给出了什么概率，以及长期来看这些概率是否可信？**
+| 产品 | 数据 | 模型 | 工程 |
+|---|---|---|---|
+| 赛前预测、历史记录、赛后复盘、模型实验室 | 比赛 → 地图 → 选手，保留来源与时间 | Champion 正式预测 + 冻结 Logistic C1 对照 | 有预算的云端采集、赛果确认、可追溯结算、独立 AI 任务 |
 
-VCT Forecast Lab 把这个过程做成了可运行的网站：
+**截至 2026-11-09 14:43（北京时间）的公开聚合快照：97 场正式预测 · 80 场有效模型配对 · 主赛评估 34/100。** 80 场包含多个独立赛事级别，不等于主赛门槛已完成 80 场。网站为 LIVE，最近一次同步成功；赛事覆盖与 AI 内容仍有明确限制。
 
-- **看预测**：展示系统已生成的比赛预测，点进比赛再看判断依据、地图胜率与比分分布。
-- **留记录**：赛前保存输入和概率，开赛后不回头改写判断。
-- **看复盘**：确认赛果后呈现地图、选手表现和 AI 分析，区分事实与推测。
-- **比模型**：正式模型与冻结的候选模型并行预测，以同一批真实比赛比较概率质量。
+本次代码导出对应 **Sites Version 44** 与 Runner 11 月 4 日已上线的赛果修复、分层评估能力。[数据快照](docs/data/evaluation-snapshot-2026-11-09.json)与[源码对应表](docs/source-snapshot.json)分别记录指标和代码出处。
 
-这不是“已经证明能够自动进化”的系统。它是一个**已经部署、正在积累真实检验样本的预测与评估产品**。
+## 模型表现：让结果可以被检查
 
-## 当前进展
+![Elo、Champion、Logistic C1 的准确率：历史测试200场与真实主赛34场分别展示，含命中数和描述性区间](docs/assets/model-accuracy.png)
 
-代码快照于 **2026-10-21** 增量同步，包含紧凑赛事界面、真实队标、有限预算的资料准备与私有归档，以及 AI 证据校验修复。网站源码对应 Sites Version 41；Runner 的赛前解释资料补充仍待发布，LOUD 新版复盘的真实生成验收尚未完成。代码同步不代表部署或内容验收完成。
+| 评价场景 | 样本 | Elo | Champion | Logistic C1 |
+|---|---:|---:|---:|---:|
+| 固定历史 Test | 200 场 | 56.0% · 112/200 | 61.0% · 122/200¹ | 59.0% · 118/200 |
+| 真实赛前锁定的主赛对照 | 34 场 | 无对应的真实冻结记录 | 55.9% · 19/34 | 64.7% · 22/34 |
 
-以下为 **2026-10-19 19:18（北京时间）**从生产聚合接口读取的快照，不是实时承诺：
+¹ 历史 Champion 为**可安全回放因素构成的部分代理**，不能视为完整线上模型的精确重建。历史结果来自已保存的单次测试记录，本次没有重新运行 Test 或调参。DeepSeek 提供解释与诊断，没有独立的正式概率记录，因此不编造其准确率。
 
-| 项目 | 已验证状态 |
-|---|---|
-| 网站正式预测历史 | 43 场 |
-| Champion / C1 合格已结算配对 | 34 场，进入初步观察阶段 |
-| C1 正式评估门槛 | 100 场，达到门槛也不自动晋级 |
-| 合格的前瞻学习比赛 | 42 场，与 C1 配对口径不同 |
-| 正式预测模型 | Champion V1.0.0，权重不变 |
-| 候选模型 | Logistic C1，参数冻结、仅作旁路比较 |
-| 评估数据一致性 | 34 组合格配对通过一致性检查 |
-| 赛事覆盖 | 四赛区来源索引已接入，覆盖仍不完整 |
+真实主赛对照中，C1 的 Brier 为 **0.2356**，Champion 为 **0.2479**；但 C1 的校准误差更高。**当前结论仍为初步观察，C1 未晋级。** 命中率之外，还要检验模型给出的把握是否合理、优势是否能在更多新比赛中保持。
 
-网站与数据同步正常工作，不等于每场比赛都有足够资料可以预测，也不等于所有 AI 复盘请求都成功。当前 AI 超时、结构校验失败和新队伍历史不足仍是明确的待改进项。
+### 不同赛事级别，分别检验
 
-## 从预测到检验
+![全部真实赛前配对按赛事级别分别展示，包含主赛、国内晋升赛、EMEA次级赛和小样本外区赛事](docs/assets/cohort-accuracy.png)
+
+国内晋升赛为 **21 场**，Champion 命中 **9 场**，C1 命中 **14 场**；EMEA 次级赛 **16 场**，双方均命中 **11 场**。美洲资格赛等小样本的较差结果也完整保留。不同地区与级别没有合并成一个“总准确率”，1–5 场的结果不足以判断模型优劣。
+
+图中横线为描述性 95% Wilson 区间；未处理同队伍、多场比赛之间的相关性，不能用区间重叠与否替代正式的配对比较。
+
+<details>
+<summary>展开：Brier、Log Loss 与校准误差</summary>
+
+![同一批34场真实主赛，分别对照Brier、Log Loss与ECE，三项指标越低越好](docs/assets/probability-quality.png)
+
+- **Brier**：给出的胜率距离真实结果有多远。
+- **Log Loss**：尤其惩罚“非常自信却判断错误”。
+- **校准误差 ECE**：例如长期给出 70% 的判断，是否大约有 70% 成真；这里使用 10 个固定区间。
+
+同一批比赛上，C1 的 Brier、Log Loss 较低，ECE 较高。所有数值与完整分层表见[模型评估](docs/evaluation.md)。
+
+</details>
+
+## 一场比赛如何进入系统
 
 ```mermaid
 flowchart LR
-    A[发现比赛与检查资料] --> B[保存赛前输入]
-    B --> C[Champion 正式预测]
-    B --> D[冻结 C1 旁路预测]
-    C --> E[赛前锁定]
+    A[发现比赛与检查资料] --> B[保存赛前信息]
+    B --> C[Champion 正式概率]
+    B --> D[C1 冻结对照概率]
+    C --> E[开赛前锁定]
     D --> E
-    E --> F[比赛结束与赛果确认]
-    F --> G[独立结算与模型比较]
-    F --> H[有证据边界的 AI 复盘]
-    H --> I[保存研究假设]
+    E --> F[核验最终赛果]
+    F --> G[同场结算与分层评估]
+    F -.-> H[AI 复盘与研究假设]
 ```
 
-**AI 负责解释与提出假设，不负责改概率、改参数、训练或批准模型晋级。**
+前台聚焦比赛：**首页**集中查看预测、历史和复盘，进入单场再查看依据、地图分析与实际赛果；**模型实验室**展示长期表现。后台持续检查 CN、EMEA、美洲、太平洋及国际赛事，资料不足的比赛进入观察状态，并保留阻塞原因。
 
-## 工程上值得看的部分
+## 核心工程决策
 
-### 不偷看未来的历史回放
-
-历史输入必须满足 `source_time < target_match_time`。不能把队伍今天的最终状态填回过去，也不能把目标比赛的实际阵容、地图和结果当成赛前信息。
-
-已完成小样本回放验证及扩大后的未来数据污染测试。历史测试集与网站真实赛前锁定样本始终分开。
-
-### 不把进行中的比分当作最终赛果
-
-地图终局比分、地图胜者、系列赛比分必须相互一致。候选结果经过稳定性确认后才可结算；冲突通过隔离与版本化修订处理，而不是悄悄覆盖历史。
-
-### 不把更多赛事等同于更好的覆盖
-
-云端会检查 CN、EMEA、美洲、太平洋及国际赛事，支持跨年赛季、资格赛、晋升赛、次级赛事与邀请赛的发现。
-
-但发现比赛之后仍要检查对阵、时间、赛制、地图和历史资料。未知或资料不足的比赛继续观察，不编造概率。不同赛事级别分别记录，不混入原有主要 VCT 的百场评估。
-
-### 不把 AI 的解释包装成事实
-
-赛前分析与赛后复盘有独立任务状态、错误分类和有限重试。复盘使用已保存的预测及已确认的统计，并区分：
-
-- **事实**：比分、地图和可核验的比赛统计。
-- **模型信号**：赛前实际使用的变量与输出。
-- **研究假设**：尚未被验证的可能原因。
-
-AI 失败不应阻断确定性的赛果结算。缺少完整回合证据时，不声称已经证明了战术因果。
-
-## 模型评估
-
-### 已完成的历史比较
-
-按时间固定拆分为 **650 场训练 / 150 场验证 / 200 场测试**；测试集未用于事后调参。
-
-| 模型 | Brier ↓ | Log Loss ↓ | Accuracy ↑ |
-|---|---:|---:|---:|
-| Elo 基线 | 0.252311 | 0.703687 | 56.0% |
-| Champion 历史部分代理 | 0.243952 | 0.683014 | 61.0% |
-| Logistic C1 | 0.243037 | 0.679587 | 59.0% |
-
-**结论：INCONCLUSIVE，C1 未晋级。** Champion 这一行是可安全回放因素构成的部分代理，不是完整线上模型的完美重建。
-
-### 正在积累的真实赛前比较
-
-截至上述读取时间，同一批 **34 场**合格已结算配对：
-
-| 模型 | Brier ↓ | Log Loss ↓ | Accuracy ↑ | ECE ↓ |
-|---|---:|---:|---:|---:|
-| Champion V1.0.0 | 0.247917 | 0.689298 | 55.9% | 0.039284 |
-| Logistic C1 | 0.235605 | 0.664047 | 64.7% | 0.131233 |
-
-**只是早期观察，不是胜出或晋级结论。** C1 在这批样本上的 Brier、Log Loss 较好，但 ECE 更差；小样本不足以证明长期优势。历史 200 场测试绝不计入这里。
-
-完整口径见 [Evaluation](docs/evaluation.md)。
-
-## 系统结构与代码入口
-
-三个生产项目保持独立；这个仓库是面向作品集的、经过筛选的源代码快照，不是生产数据库的镜像。
-
-| 目录 | 职责 | 建议先看 |
+| 问题 | 实现选择 | 可以检查的证据 |
 |---|---|---|
-| [model/](model/) | Python 预测、历史回放、候选模型离线评估 | [replay.py](model/src/vct_prediction/replay.py)、[challenger.py](model/src/vct_prediction/challenger.py) |
-| [runner/](runner/) | 云端赛程发现、赛前锁定、赛果确认、旁路评估 | [competition.py](runner/src/vct_prediction/competition.py)、[automation.py](runner/src/vct_prediction/automation.py)、[shadow.py](runner/src/vct_prediction/shadow.py) |
-| [site/](site/) | React / TypeScript 页面、D1 记录与 DeepSeek 分析 | [prediction-store.ts](site/lib/prediction-store.ts)、[deepseek.ts](site/lib/deepseek.ts)、[reader-analysis.ts](site/lib/reader-analysis.ts) |
+| 历史回测可能偷看未来 | 所有动态特征只读 `source_time < match_time`；从此前比赛重建状态 | [历史回放](model/src/vct_prediction/replay.py)与未来数据污染测试 |
+| 赛后改写预测会让成绩失真 | 同一赛前快照绑定 Champion / C1，锁定概率、版本和输入哈希 | [冻结与独立结算](runner/src/vct_prediction/shadow.py) |
+| 进行中的地图面板可能被误当终局 | 地图终局、地图胜者、系列赛比分相互核验，并要求稳定确认 | [赛果完整性](runner/src/vct_prediction/sources/vlr.py) |
+| 赛制或来源身份变化会污染评估 | 冲突隔离、版本化记录；从已确认结果恢复结算时不重算实力分 | [结算检查与恢复](runner/src/vct_prediction/settlement_checks.py) |
+| 新赛事与资料准备增加云端负担 | 请求、详情和时间预算；缓存与轮转；比赛级别分层 | [自动流程](runner/src/vct_prediction/automation.py)、[资料准备](runner/src/vct_prediction/readiness.py) |
+| AI 生成失败可能拖垮主流程 | 赛前、赛后任务独立，有限重试；事实、模型信号、推测分别保存 | [AI 任务](site/lib/ai-reliability.ts)、[证据约束](site/lib/review-evidence.ts) |
 
-**主要技术**：Python、SQLite、React、TypeScript、Vinext / Vite、Cloudflare D1、Railway、DeepSeek。
+一个已处理的真实边界：赛前保存为 BO3 的比赛，后来收到 BO5 的 2–3 赛果。系统保留原预测并隔离这组冲突，阻止它混入正式成绩。[分层评价模块](runner/src/vct_prediction/cohort_evaluation.py)还会核验冻结时点、输入与 artifact 身份，并复现保存的 C1 概率。
 
-架构与方法：[Architecture](docs/architecture.md) / [Data Methodology](docs/data-methodology.md) / [AI Governance](docs/ai-governance.md) / [Model Evolution](docs/model-evolution.md)。
+## 代码结构与技术栈
 
-## 本地检查
+三个生产项目保持独立；本仓库是经过筛选、保留公开复现能力的作品集代码快照。
 
-本仓库不携带生产数据。公开测试使用隔离数据；依赖私有历史数据库的回放测试会跳过。组件运行方式见各目录 README，验证记录见 [Verification](docs/verification.md)。
+| 目录 | 主要职责 | 入口 |
+|---|---|---|
+| [model/](model/) | Python 预测、严格历史回放、Logistic 离线评估 | [replay.py](model/src/vct_prediction/replay.py)、[challenger.py](model/src/vct_prediction/challenger.py) |
+| [runner/](runner/) | 云端赛程发现、质量检查、赛前锁定、赛果确认、分层评价 | [automation.py](runner/src/vct_prediction/automation.py)、[cohort_evaluation.py](runner/src/vct_prediction/cohort_evaluation.py) |
+| [site/](site/) | 比赛界面、D1 记录、DeepSeek 解释与复盘 | [prediction-store.ts](site/lib/prediction-store.ts)、[deepseek.ts](site/lib/deepseek.ts) |
+| [docs/](docs/) | 架构、数据方法、评估协议、验证证据与图表 | [Architecture](docs/architecture.md)、[Evaluation](docs/evaluation.md) |
+| [scripts/](scripts/) | 从已保存聚合指标重绘展示图表 | [render_evaluation_charts.py](scripts/render_evaluation_charts.py) |
+
+**Python · SQLite · React · TypeScript · Vinext / Vite · Cloudflare D1 · Railway · DeepSeek**
+
+项目以 AI 辅助开发推进。这里展示的是已经实现、部署或验证的产品与工程能力，不宣称未经验证的用户规模、商业成效或自动进化成果。
+
+## 检查与复现
+
+公开仓库提供隔离测试和合成示例，不附生产数据库。依赖私有历史数据的检查会明确跳过。
 
 ```powershell
-# 在 runner/ 下：安装 requirements.txt 中的依赖后
-$env:PYTHONPATH = "src"
+# runner/：在安装 requirements.txt 所列依赖的 Python 环境中
+$env:PYTHONPATH = "src;tests"
 python -m unittest discover -s tests
 
-# 在 site/ 下：Node.js 22.13+，按 lockfile 安装依赖后
+# site/：Node.js 22.13+，按现有 lockfile 准备依赖
 npm ci
 npm test
 npm run build
+
+# 仓库根目录：图表仅需 Pillow 与本机 TrueType 字体
+python scripts/render_evaluation_charts.py
 ```
 
-示例记录见 [examples/](examples/)，均为合成示例。C1 公开文件只包含复现打分所需的参数和聚合评价，不包含历史比赛数据行；公开子集文件的哈希不冒充完整生产 artifact 哈希。
+本次增量检查：**Runner 60 passed / 8 skipped；Site 54 passed，TypeScript 与生产构建通过**。图表由已保存的聚合 JSON 生成，提供 PNG 与 SVG；重绘图表不会采集数据、训练模型或重新使用历史 Test。具体命令与范围见[验证记录](docs/verification.md)。
 
-## 当前边界与下一步
+## 研究边界与后续工作
 
-- 四赛区来源索引接通不等于覆盖全网所有比赛；新队伍历史资料的定向补齐仍需完善。
-- VLR 是社区二手来源，不是官方 Riot API；访问稳定性、使用条款与数据授权需要单独处理。
-- 真实游戏版本、官方赛前阵容时间线、完整回合与经济数据并不齐全。
-- 已保存的 `event_cohort` 是赛事分组代理，不是真实游戏 Patch。
-- AI 复盘的内容质量、超时与结构校验失败仍需改进。
-- C1 继续冻结观察。未来训练、候选模型选择和晋级都需要独立授权与评估，尚未发生。
+- **覆盖**：来源索引成功不等于所有真实赛事均已收录；新队伍历史不足、赛制不支持与详情预算仍会阻塞预测。
+- **数据**：VLR 为社区二手来源；真实 Patch、官方赛前阵容时间线、完整回合与经济数据不齐全。`event_cohort` 只是赛事分组代理。
+- **AI**：赛前解释与赛后复盘仍存在结构校验失败和内容质量问题。AI 没有修改正式概率、训练模型或决定晋级的权限。
+- **模型**：Champion 继续提供唯一正式概率；C1 参数冻结。下一步是积累新样本、分别研究地区和级别差异，使用独立验证协议评估改进。
 
-## 发布与使用说明
+仓库排除密钥、真实环境变量、数据库、原始页面、逐场训练数据、生产日志和部署绑定。C1 公共参数子集与完整生产 artifact 使用不同哈希，不能相互冒充。代码公开不代表第三方赛事数据获得再分发授权。
 
-此仓库不发布密钥、真实 `.env`、SQLite 数据库、原始采集页面、逐场训练数据、生产日志或云端部署绑定。代码公开不代表第三方赛事数据获得了再分发许可。
-
-这是独立的作品集与研究项目，与 Riot Games、VALORANT Champions Tour、VLR.gg 无隶属关系。尚未选择开源许可证。
+独立作品集与研究项目，与 Riot Games、VALORANT Champions Tour、VLR.gg 无隶属关系。尚未选择开源许可证。

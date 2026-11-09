@@ -2,6 +2,31 @@
 
 This page records checks on the public export, not a new deployment or a rerun of the private historical Test set.
 
+## Incremental publication — 2026-11-09
+
+- Review baseline: `fba8f0770a5c7b82ab3b71f4dcfc1696cbc689bc`, main. Remote main was fetched and matched the clean local baseline before changes.
+- Synced22 changed/new source files: latest Site44 evidence-review behavior, successful-analysis selection and tests; Runner exact-fixture settlement recovery, versioned result quarantine and frozen C1 cohort diagnostics.
+- Kept public-only schema seed, placeholder local binding, explicit private-seed test skips and C1 public parameter subset. Original three source worktrees were not edited or committed.
+- Source correspondence and file hashes: [source-snapshot.json](source-snapshot.json). Dated aggregate state: [evaluation snapshot](data/evaluation-snapshot-2026-11-09.json). Runner source parent plus reviewed working-tree changes is distinguished from a clean source commit.
+- Website and Runner were not deployed during this task. The previously unfinished Runner context publication and single-match acceptance notes below describe older checkpoints; current source is Site44 and the November4 Runner recovery.
+
+| Executed check | Result | Scope |
+|---|---|---|
+| Runner affected modules, command below | 60 passed / 8 skipped, 0 failures | 68 discovered; skips require excluded private seed |
+| Four changed Site test files | 54 passed, 0 skipped | Isolated fixtures, mocked provider |
+| TypeScript `tsc --noEmit` | Passed | Public Site source |
+| `npm run build` | Passed | Placeholder bindings; not a production/provider test |
+| Chart generation and visual inspection | 3 PNG + 3 SVG | Counts, scales, small samples and separate cohorts checked |
+| Incremental publication audit | 40 changed/new files, zero findings | Secret/data patterns, local Markdown links, SVG safety,22 source hashes and6 preserved public adaptations |
+
+Runner command (with `PYTHONPATH=src;tests`): `python -m unittest test_settlement_recovery test_shadow_challenger test_bridge_payload test_result_finality test_vlr_result_completeness test_evidence_archive test_runner_service test_prospective_learning`.
+
+Site command: `node --experimental-strip-types --test tests/ai-reliability.test.ts tests/analysis-repair.test.ts tests/diagnosis-queue.test.ts tests/review-provider.test.ts`.
+
+The initial bundled Python lacked optional collection dependencies; final Runner checks reused the existing configured environment with requirements installed. The initial build could not write a shared dependency cache under the restricted account; the successful build used the authorized account and unchanged dependencies. Neither problem required installation or application changes.
+
+Historical Test evaluation, source collection, model fitting, parameter changes, promotion and paid AI generation were not performed. Current known issues remain data-limited fixtures, a source-identity conflict, a quarantined format conflict and AI generation/quality failures. This publication does not claim they are repaired.
+
 ## Incremental update — 2026-10-21
 
 - Review baseline: `5302bd6cad41c270519caae932c8c064d1406d93` on `main`. Only changed files and necessary callers were reviewed; unchanged model and frozen C1 evaluation conclusions were reused.

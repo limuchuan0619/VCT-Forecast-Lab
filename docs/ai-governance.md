@@ -120,3 +120,9 @@ DeepSeek output is never part of the automatic promotion decision. A future auth
 4. an untouched validation/test plan;
 5. prospective evidence;
 6. an explicit human-governed decision.
+
+## Current reader-review policy
+
+Sites Version44 uses `vct-postmatch-deepseek-v20-balanced1` / `facts-first-advisory-v1`. Exact source-backed numeric restatement, repetition and cautious interpretation are editorial warnings rather than unconditional rejection. Invalid structure, invented numerical facts, incorrect score evidence and mismatched map/player references remain constrained by the evidence validator. This is bounded validation, not a universal semantic guarantee.
+
+At most one validation repair follows a generation request; queued jobs retain finite retries and their saved prompt/input contracts. Prematch and postmatch states remain independent. Dated public reliability counts are preserved in the portfolio aggregate snapshot; successful sync or build does not mean every AI article succeeds or has professional editorial quality.

@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1230" viewBox="0 0 1600 1230">
+<title>Prospective accuracy by competition cohort</title><desc>Every cohort is shown, including unfavorable and tiny samples. No combined accuracy is presented.</desc>
+<rect width="1600" height="1230" fill="#0d1117"/>
+<text x="52" y="50.12" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#9da7b1" font-weight="400">VCT FORECAST LAB  /  EVALUATION</text>
+<text x="52" y="110.92" font-family="Segoe UI,Arial,sans-serif" font-size="38" fill="#e6edf3" font-weight="600">Performance changes across competition levels</text>
+<text x="52" y="155.64" font-family="Segoe UI,Arial,sans-serif" font-size="21" fill="#9da7b1" font-weight="400">80 valid pairs across separate cohorts. Only primary VCT contributes to the 100-match gate.</text>
+<text x="52" y="192.12" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#d6b16c" font-weight="400">ALL AVAILABLE COHORTS SHOWN  /  NO POOLED LEADERBOARD</text>
+<text x="382" y="245.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#d6b16c" font-weight="400">Champion V1.0.0</text>
+<text x="683" y="245.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#65a9f3" font-weight="400">Frozen Logistic C1</text>
+<line x1="382.0" y1="286" x2="382.0" y2="1034" stroke="#30363d" stroke-width="1"/>
+<text x="372.0" y="1059.44" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#9da7b1" font-weight="400">0%</text>
+<line x1="550.0" y1="286" x2="550.0" y2="1034" stroke="#30363d" stroke-width="1"/>
+<text x="540.0" y="1059.44" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#9da7b1" font-weight="400">20%</text>
+<line x1="718.0" y1="286" x2="718.0" y2="1034" stroke="#30363d" stroke-width="1"/>
+<text x="708.0" y="1059.44" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#9da7b1" font-weight="400">40%</text>
+<line x1="886.0" y1="286" x2="886.0" y2="1034" stroke="#30363d" stroke-width="1"/>
+<text x="876.0" y="1059.44" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#9da7b1" font-weight="400">60%</text>
+<line x1="1054.0" y1="286" x2="1054.0" y2="1034" stroke="#30363d" stroke-width="1"/>
+<text x="1044.0" y="1059.44" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#9da7b1" font-weight="400">80%</text>
+<line x1="1222.0" y1="286" x2="1222.0" y2="1034" stroke="#30363d" stroke-width="1"/>
+<text x="1212.0" y="1059.44" font-family="Segoe UI,Arial,sans-serif" font-size="16" fill="#9da7b1" font-weight="400">100%</text>
+<text x="52" y="322.16" font-family="Segoe UI,Arial,sans-serif" font-size="24" fill="#e6edf3" font-weight="600">Primary VCT</text>
+<text x="52" y="357.12" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#9da7b1" font-weight="400">n = 34</text>
+<rect x="382" y="299" width="469.4117647058824" height="28" fill="#d6b16c"/>
+<line x1="713.4127537521058" y1="313" x2="979.3787491315659" y2="313" stroke="#e6edf3" stroke-width="2"/>
+<line x1="713.4127537521058" y1="306" x2="713.4127537521058" y2="320" stroke="#e6edf3" stroke-width="2"/>
+<line x1="979.3787491315659" y1="306" x2="979.3787491315659" y2="320" stroke="#e6edf3" stroke-width="2"/>
+<text x="382" y="287.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#d6b16c" font-weight="400"></text>
+<text x="1240" y="316.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#d6b16c" font-weight="400">55.9%  |  19/34</text>
+<rect x="382" y="342" width="543.5294117647059" height="28" fill="#65a9f3"/>
+<line x1="784.4772902061666" y1="356" x2="1041.5014670030123" y2="356" stroke="#e6edf3" stroke-width="2"/>
+<line x1="784.4772902061666" y1="349" x2="784.4772902061666" y2="363" stroke="#e6edf3" stroke-width="2"/>
+<line x1="1041.5014670030123" y1="349" x2="1041.5014670030123" y2="363" stroke="#e6edf3" stroke-width="2"/>
+<text x="382" y="330.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#65a9f3" font-weight="400"></text>
+<text x="1240" y="359.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#65a9f3" font-weight="400">64.7%  |  22/34</text>
+<line x1="52" y1="402" x2="1510" y2="402" stroke="#30363d" stroke-width="1"/>
+<text x="52" y="442.16" font-family="Segoe UI,Arial,sans-serif" font-size="24" fill="#e6edf3" font-weight="600">CN qualification</text>
+<text x="52" y="477.12" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#9da7b1" font-weight="400">n = 21</text>
+<rect x="382" y="419" width="360.0" height="28" fill="#d6b16c"/>
+<line x1="587.5477389731581" y1="433" x2="915.0089432978236" y2="433" stroke="#e6edf3" stroke-width="2"/>
+<line x1="587.5477389731581" y1="426" x2="587.5477389731581" y2="440" stroke="#e6edf3" stroke-width="2"/>
+<line x1="915.0089432978236" y1="426" x2="915.0089432978236" y2="440" stroke="#e6edf3" stroke-width="2"/>
+<text x="382" y="407.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#d6b16c" font-weight="400"></text>
+<text x="1240" y="436.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#d6b16c" font-weight="400">42.9%  |  9/21</text>
+<rect x="382" y="462" width="560.0" height="28" fill="#65a9f3"/>
+<line x1="763.136996583744" y1="476" x2="1077.5640781172988" y2="476" stroke="#e6edf3" stroke-width="2"/>
+<line x1="763.136996583744" y1="469" x2="763.136996583744" y2="483" stroke="#e6edf3" stroke-width="2"/>
+<line x1="1077.5640781172988" y1="469" x2="1077.5640781172988" y2="483" stroke="#e6edf3" stroke-width="2"/>
+<text x="382" y="450.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#65a9f3" font-weight="400"></text>
+<text x="1240" y="479.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#65a9f3" font-weight="400">66.7%  |  14/21</text>
+<line x1="52" y1="522" x2="1510" y2="522" stroke="#30363d" stroke-width="1"/>
+<text x="52" y="562.16" font-family="Segoe UI,Arial,sans-serif" font-size="24" fill="#e6edf3" font-weight="600">EMEA secondary</text>
+<text x="52" y="597.12" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#9da7b1" font-weight="400">n = 16</text>
+<rect x="382" y="539" width="577.5" height="28" fill="#d6b16c"/>
+<line x1="754.9965890118216" y1="553" x2="1103.0169916198308" y2="553" stroke="#e6edf3" stroke-width="2"/>
+<line x1="754.9965890118216" y1="546" x2="754.9965890118216" y2="560" stroke="#e6edf3" stroke-width="2"/>
+<line x1="1103.0169916198308" y1="546" x2="1103.0169916198308" y2="560" stroke="#e6edf3" stroke-width="2"/>
+<text x="382" y="527.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#d6b16c" font-weight="400"></text>
+<text x="1240" y="556.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#d6b16c" font-weight="400">68.8%  |  11/16</text>
+<rect x="382" y="582" width="577.5" height="28" fill="#65a9f3"/>
+<line x1="754.9965890118216" y1="596" x2="1103.0169916198308" y2="596" stroke="#e6edf3" stroke-width="2"/>
+<line x1="754.9965890118216" y1="589" x2="754.9965890118216" y2="603" stroke="#e6edf3" stroke-width="2"/>
+<line x1="1103.0169916198308" y1="589" x2="1103.0169916198308" y2="603" stroke="#e6edf3" stroke-width="2"/>
+<text x="382" y="570.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#65a9f3" font-weight="400"></text>
+<text x="1240" y="599.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#65a9f3" font-weight="400">68.8%  |  11/16</text>
+<line x1="52" y1="642" x2="1510" y2="642" stroke="#30363d" stroke-width="1"/>
+<text x="52" y="682.16" font-family="Segoe UI,Arial,sans-serif" font-size="24" fill="#e6edf3" font-weight="600">Americas qualification</text>
+<text x="52" y="717.12" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#9da7b1" font-weight="400">n = 5  |  very small sample</text>
+<rect x="382" y="659" width="168.0" height="28" fill="#d6b16c"/>
+<line x1="412.4282512512413" y1="673" x2="906.5509109994788" y2="673" stroke="#e6edf3" stroke-width="2"/>
+<line x1="412.4282512512413" y1="666" x2="412.4282512512413" y2="680" stroke="#e6edf3" stroke-width="2"/>
+<line x1="906.5509109994788" y1="666" x2="906.5509109994788" y2="680" stroke="#e6edf3" stroke-width="2"/>
+<text x="382" y="647.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#d6b16c" font-weight="400"></text>
+<text x="1240" y="676.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#d6b16c" font-weight="400">20.0%  |  1/5</text>
+<rect x="382" y="702" width="168.0" height="28" fill="#65a9f3"/>
+<line x1="412.4282512512413" y1="716" x2="906.5509109994788" y2="716" stroke="#e6edf3" stroke-width="2"/>
+<line x1="412.4282512512413" y1="709" x2="412.4282512512413" y2="723" stroke="#e6edf3" stroke-width="2"/>
+<line x1="906.5509109994788" y1="709" x2="906.5509109994788" y2="723" stroke="#e6edf3" stroke-width="2"/>
+<text x="382" y="690.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#65a9f3" font-weight="400"></text>
+<text x="1240" y="719.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#65a9f3" font-weight="400">20.0%  |  1/5</text>
+<line x1="52" y1="762" x2="1510" y2="762" stroke="#30363d" stroke-width="1"/>
+<text x="52" y="802.16" font-family="Segoe UI,Arial,sans-serif" font-size="24" fill="#e6edf3" font-weight="600">EMEA invitational</text>
+<text x="52" y="837.12" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#9da7b1" font-weight="400">n = 3  |  very small sample</text>
+<rect x="382" y="779" width="560.0" height="28" fill="#d6b16c"/>
+<line x1="556.4340646737201" y1="793" x2="1170.346766434867" y2="793" stroke="#e6edf3" stroke-width="2"/>
+<line x1="556.4340646737201" y1="786" x2="556.4340646737201" y2="800" stroke="#e6edf3" stroke-width="2"/>
+<line x1="1170.346766434867" y1="786" x2="1170.346766434867" y2="800" stroke="#e6edf3" stroke-width="2"/>
+<text x="382" y="767.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#d6b16c" font-weight="400"></text>
+<text x="1240" y="796.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#d6b16c" font-weight="400">66.7%  |  2/3</text>
+<rect x="382" y="822" width="560.0" height="28" fill="#65a9f3"/>
+<line x1="556.4340646737201" y1="836" x2="1170.346766434867" y2="836" stroke="#e6edf3" stroke-width="2"/>
+<line x1="556.4340646737201" y1="829" x2="556.4340646737201" y2="843" stroke="#e6edf3" stroke-width="2"/>
+<line x1="1170.346766434867" y1="829" x2="1170.346766434867" y2="843" stroke="#e6edf3" stroke-width="2"/>
+<text x="382" y="810.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#65a9f3" font-weight="400"></text>
+<text x="1240" y="839.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#65a9f3" font-weight="400">66.7%  |  2/3</text>
+<line x1="52" y1="882" x2="1510" y2="882" stroke="#30363d" stroke-width="1"/>
+<text x="52" y="922.16" font-family="Segoe UI,Arial,sans-serif" font-size="24" fill="#e6edf3" font-weight="600">Americas invitational</text>
+<text x="52" y="957.12" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#9da7b1" font-weight="400">n = 1  |  very small sample</text>
+<rect x="382" y="899" width="840" height="28" fill="#d6b16c"/>
+<line x1="555.5014240768794" y1="913" x2="1222.0" y2="913" stroke="#e6edf3" stroke-width="2"/>
+<line x1="555.5014240768794" y1="906" x2="555.5014240768794" y2="920" stroke="#e6edf3" stroke-width="2"/>
+<line x1="1222.0" y1="906" x2="1222.0" y2="920" stroke="#e6edf3" stroke-width="2"/>
+<text x="382" y="887.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#d6b16c" font-weight="400"></text>
+<text x="1240" y="916.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#d6b16c" font-weight="400">100.0%  |  1/1</text>
+<rect x="382" y="942" width="0" height="28" fill="#65a9f3"/>
+<line x1="382.0" y1="956" x2="1048.4985759231206" y2="956" stroke="#e6edf3" stroke-width="2"/>
+<line x1="382.0" y1="949" x2="382.0" y2="963" stroke="#e6edf3" stroke-width="2"/>
+<line x1="1048.4985759231206" y1="949" x2="1048.4985759231206" y2="963" stroke="#e6edf3" stroke-width="2"/>
+<text x="382" y="930.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#65a9f3" font-weight="400"></text>
+<text x="1240" y="959.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#65a9f3" font-weight="400">0.0%  |  0/1</text>
+<text x="52" y="1106.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#9da7b1" font-weight="400">Whiskers: descriptive 95% Wilson intervals; shared teams and match dependence are not modeled.</text>
+<text x="52" y="1146.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#9da7b1" font-weight="400">n = 1-5 is insufficient to judge superiority. Every cohort remains preliminary; no promotion decision.</text>
+<text x="52" y="1189.12" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#9da7b1" font-weight="400">Snapshot 2026-11-09  |  source: public overview aggregate  |  Data ab93babef7</text>
+</svg>

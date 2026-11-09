@@ -67,7 +67,7 @@ C1 improved Brier and Log Loss slightly over the partial Champion proxy but did 
 
 Goal: run frozen C1 next to Champion on future eligible fixtures.
 
-State verified on 2026-10-19 19:18 Asia/Shanghai: **PRELIMINARY**
+State verified on 2026-11-09 14:43 Asia/Shanghai: **PRELIMINARY**
 
 - Champion and C1 use the same pre-match snapshot;
 - both probabilities are frozen before the match;
@@ -76,7 +76,7 @@ State verified on 2026-10-19 19:18 Asia/Shanghai: **PRELIMINARY**
 - DeepSeek may diagnose errors after settlement;
 - promotion is disabled before 100 eligible resolved matches.
 
-At this dated portfolio refresh, the prospective count is **34/100** eligible resolved pairs. Champion remains the sole official probability model; C1 has not been retrained or promoted.
+At this dated portfolio refresh, the original primary-VCT prospective gate remains **34/100**. Separately tracked cohorts total **80 valid pairs** across primary VCT, CN/Americas qualification, EMEA secondary and EMEA/Americas invitationals; these are not80 primary-gate matches. Champion remains the sole official probability model; C1 has not been retrained or promoted.
 
 ## Reliability and coverage follow-up
 
@@ -84,7 +84,7 @@ The source snapshot now includes separate pre-match/post-match AI job queues, de
 
 The October coverage repair checks five global/four-region all-tier source indexes and recognizes adjacent-season, qualification, secondary and invitational events. Observation is separate from prediction readiness. Those new competition cohorts are kept separate from the original primary-VCT prospective gate.
 
-Coverage remains partial, new-team historical data enrichment is unfinished and AI review reliability still needs work. These are known limitations, not completed model improvements.
+The November operational recovery adds exact-fixture settlement reconciliation, series-format quarantine and frozen-artifact per-cohort diagnostics. Coverage remains partial, new-team historical data enrichment is unfinished and AI review reliability still needs work. These are known limitations, not completed model improvements.
 
 ## What comes next
 

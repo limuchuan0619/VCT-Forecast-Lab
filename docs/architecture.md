@@ -96,6 +96,8 @@ Portfolio entry points:
 - [Frozen C1 and prospective metrics](../runner/src/vct_prediction/shadow.py)
 - [Append-only database schema](../runner/src/vct_prediction/db.py)
 - [Public bridge](../runner/bridge/vct_public_bridge.py)
+- [Exact-fixture settlement reconciliation and quarantine](../runner/src/vct_prediction/settlement_checks.py)
+- [Read-only frozen C1 cohort diagnostics](../runner/src/vct_prediction/cohort_evaluation.py)
 
 ## 3. Public Site
 

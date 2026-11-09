@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="790" viewBox="0 0 1600 790">
+<title>Probability quality on 34 prospective paired matches</title><desc>C1 has lower Brier and log loss but higher ECE. Each metric has its own clearly labeled zero-based axis.</desc>
+<rect width="1600" height="790" fill="#0d1117"/>
+<text x="52" y="50.12" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#9da7b1" font-weight="400">VCT FORECAST LAB  /  EVALUATION</text>
+<text x="52" y="110.92" font-family="Segoe UI,Arial,sans-serif" font-size="38" fill="#e6edf3" font-weight="600">Probability quality beyond the correct winner</text>
+<text x="52" y="155.64" font-family="Segoe UI,Arial,sans-serif" font-size="21" fill="#9da7b1" font-weight="400">Lower is better for every metric below. Calibration and winner accuracy answer different questions.</text>
+<text x="52" y="192.12" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#d6b16c" font-weight="400">SAME 34 REAL PROSPECTIVE PRIMARY-VCT MATCHES</text>
+<rect x="40" y="242" width="480" height="354" fill="#161b22"/>
+<text x="64" y="288.84" font-family="Segoe UI,Arial,sans-serif" font-size="26" fill="#e6edf3" font-weight="600">Brier score</text>
+<line x1="64.0" y1="338" x2="64.0" y2="516" stroke="#30363d" stroke-width="1"/>
+<text x="56.0" y="545.6" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#9da7b1" font-weight="400">0.00</text>
+<line x1="136.5" y1="338" x2="136.5" y2="516" stroke="#30363d" stroke-width="1"/>
+<text x="128.5" y="545.6" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#9da7b1" font-weight="400">0.10</text>
+<line x1="209.0" y1="338" x2="209.0" y2="516" stroke="#30363d" stroke-width="1"/>
+<text x="201.0" y="545.6" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#9da7b1" font-weight="400">0.20</text>
+<line x1="281.5" y1="338" x2="281.5" y2="516" stroke="#30363d" stroke-width="1"/>
+<text x="273.5" y="545.6" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#9da7b1" font-weight="400">0.30</text>
+<line x1="354.0" y1="338" x2="354.0" y2="516" stroke="#30363d" stroke-width="1"/>
+<text x="346.0" y="545.6" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#9da7b1" font-weight="400">0.40</text>
+<text x="64" y="356.96" font-family="Segoe UI,Arial,sans-serif" font-size="19" fill="#d6b16c" font-weight="400">Champion</text>
+<rect x="64" y="369" width="179.73993950310955" height="30" fill="#d6b16c"/>
+<text x="367" y="388.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#d6b16c" font-weight="400">0.2479</text>
+<text x="64" y="450.96" font-family="Segoe UI,Arial,sans-serif" font-size="19" fill="#65a9f3" font-weight="400">Logistic C1</text>
+<rect x="64" y="463" width="170.81342955582045" height="30" fill="#65a9f3"/>
+<text x="367" y="482.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#65a9f3" font-weight="400">0.2356</text>
+<rect x="560" y="242" width="480" height="354" fill="#161b22"/>
+<text x="584" y="288.84" font-family="Segoe UI,Arial,sans-serif" font-size="26" fill="#e6edf3" font-weight="600">Log loss</text>
+<line x1="584.0" y1="338" x2="584.0" y2="516" stroke="#30363d" stroke-width="1"/>
+<text x="576.0" y="545.6" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#9da7b1" font-weight="400">0.00</text>
+<line x1="656.5" y1="338" x2="656.5" y2="516" stroke="#30363d" stroke-width="1"/>
+<text x="648.5" y="545.6" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#9da7b1" font-weight="400">0.25</text>
+<line x1="729.0" y1="338" x2="729.0" y2="516" stroke="#30363d" stroke-width="1"/>
+<text x="721.0" y="545.6" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#9da7b1" font-weight="400">0.50</text>
+<line x1="801.5" y1="338" x2="801.5" y2="516" stroke="#30363d" stroke-width="1"/>
+<text x="793.5" y="545.6" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#9da7b1" font-weight="400">0.75</text>
+<line x1="874.0" y1="338" x2="874.0" y2="516" stroke="#30363d" stroke-width="1"/>
+<text x="866.0" y="545.6" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#9da7b1" font-weight="400">1.00</text>
+<text x="584" y="356.96" font-family="Segoe UI,Arial,sans-serif" font-size="19" fill="#d6b16c" font-weight="400">Champion</text>
+<rect x="584" y="369" width="199.8964530640851" height="30" fill="#d6b16c"/>
+<text x="887" y="388.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#d6b16c" font-weight="400">0.6893</text>
+<text x="584" y="450.96" font-family="Segoe UI,Arial,sans-serif" font-size="19" fill="#65a9f3" font-weight="400">Logistic C1</text>
+<rect x="584" y="463" width="192.57375834181602" height="30" fill="#65a9f3"/>
+<text x="887" y="482.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#65a9f3" font-weight="400">0.6640</text>
+<rect x="1080" y="242" width="480" height="354" fill="#161b22"/>
+<text x="1104" y="288.84" font-family="Segoe UI,Arial,sans-serif" font-size="26" fill="#e6edf3" font-weight="600">Calibration error / ECE</text>
+<line x1="1104.0" y1="338" x2="1104.0" y2="516" stroke="#30363d" stroke-width="1"/>
+<text x="1096.0" y="545.6" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#9da7b1" font-weight="400">0.00</text>
+<line x1="1176.5" y1="338" x2="1176.5" y2="516" stroke="#30363d" stroke-width="1"/>
+<text x="1168.5" y="545.6" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#9da7b1" font-weight="400">0.05</text>
+<line x1="1249.0" y1="338" x2="1249.0" y2="516" stroke="#30363d" stroke-width="1"/>
+<text x="1241.0" y="545.6" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#9da7b1" font-weight="400">0.10</text>
+<line x1="1321.5" y1="338" x2="1321.5" y2="516" stroke="#30363d" stroke-width="1"/>
+<text x="1313.5" y="545.6" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#9da7b1" font-weight="400">0.15</text>
+<line x1="1394.0" y1="338" x2="1394.0" y2="516" stroke="#30363d" stroke-width="1"/>
+<text x="1386.0" y="545.6" font-family="Segoe UI,Arial,sans-serif" font-size="15" fill="#9da7b1" font-weight="400">0.20</text>
+<text x="1104" y="356.96" font-family="Segoe UI,Arial,sans-serif" font-size="19" fill="#d6b16c" font-weight="400">Champion</text>
+<rect x="1104" y="369" width="56.96167205882354" height="30" fill="#d6b16c"/>
+<text x="1407" y="388.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#d6b16c" font-weight="400">0.0393</text>
+<text x="1104" y="450.96" font-family="Segoe UI,Arial,sans-serif" font-size="19" fill="#65a9f3" font-weight="400">Logistic C1</text>
+<rect x="1104" y="463" width="190.28814512540222" height="30" fill="#65a9f3"/>
+<text x="1407" y="482.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#65a9f3" font-weight="400">0.1312</text>
+<text x="52" y="659.32" font-family="Segoe UI,Arial,sans-serif" font-size="23" fill="#e6edf3" font-weight="400">C1: lower Brier and Log Loss; higher calibration error on this early cohort.</text>
+<text x="52" y="702.8" font-family="Segoe UI,Arial,sans-serif" font-size="20" fill="#9da7b1" font-weight="400">Point estimates only. This chart does not establish statistical superiority or promotion eligibility.</text>
+<text x="52" y="752.12" font-family="Segoe UI,Arial,sans-serif" font-size="18" fill="#9da7b1" font-weight="400">10 fixed ECE bins  |  Snapshot 2026-11-09  |  Data ab93babef7</text>
+</svg>

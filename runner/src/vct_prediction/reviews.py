@@ -31,6 +31,7 @@ def build_prediction_review(db: Database, prediction_id: str) -> dict[str, Any]:
                JOIN teams tw ON tw.team_id=p.predicted_winner_id
                JOIN teams aw ON aw.team_id=p.actual_winner_id
                WHERE p.prediction_id=? AND p.status='resolved'
+                 AND EXISTS(SELECT 1 FROM matches m WHERE m.match_id=p.resolved_match_id AND m.series_format=p.series_format)
                  AND p.source LIKE 'system%' AND p.resolved_match_id IS NOT NULL""",
             (prediction_id,),
         ).fetchone()
@@ -185,6 +186,7 @@ def refresh_prediction_reviews(db: Database) -> dict[str, int]:
         ids = [row[0] for row in conn.execute(
             """SELECT prediction_id FROM predictions
                WHERE status='resolved' AND source LIKE 'system%' AND resolved_match_id IS NOT NULL
+                 AND EXISTS(SELECT 1 FROM matches m WHERE m.match_id=predictions.resolved_match_id AND m.series_format=predictions.series_format)
                ORDER BY julianday(scheduled_at)"""
         ).fetchall()]
     generated = 0
@@ -208,6 +210,7 @@ def list_prediction_reviews(db: Database) -> list[dict[str, Any]]:
                JOIN teams tb ON tb.team_id=p.team_b_id
                JOIN teams tw ON tw.team_id=p.predicted_winner_id
                JOIN teams aw ON aw.team_id=p.actual_winner_id
+               WHERE EXISTS(SELECT 1 FROM matches m WHERE m.match_id=p.resolved_match_id AND m.series_format=p.series_format)
                ORDER BY julianday(p.scheduled_at) DESC"""
         ).fetchall()
     reviews = []

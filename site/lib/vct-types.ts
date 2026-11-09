@@ -157,6 +157,8 @@ export type PostmatchAiReview = {
   stage: 'postmatch';
   reader_review?: import('./reader-analysis').ReaderReview;
   reader_evidence_version?: string;
+  reader_editorial_policy?: string;
+  reader_editorial_warnings?: Array<{ path: string; reason: string }>;
   reader_evidence_selection?: import('./review-evidence').EvidenceSelection;
   summary?: string;
   team_reviews?: Array<{

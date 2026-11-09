@@ -3,6 +3,7 @@ import { postmatchPacketMatchesRecord } from './evidence-presentation.ts';
 import { readerInsights, validateReaderReview } from './reader-analysis.ts';
 import {
   EVIDENCE_REVIEW_SCHEMA,
+  EVIDENCE_REVIEW_POLICY,
   validateEvidenceArticle,
 } from './review-evidence.ts';
 
@@ -136,6 +137,11 @@ export function verifiedReaderReview(record: PredictionRecord) {
       review,
       packet.readerInsights,
       packet.evidenceReferences,
+      {
+        advisory:
+          record.postmatchReview?.reader_editorial_policy ===
+          EVIDENCE_REVIEW_POLICY,
+      },
     );
     if (
       record.postmatchReview?.reader_evidence_version === EVIDENCE_REVIEW_SCHEMA

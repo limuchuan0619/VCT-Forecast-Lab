@@ -112,7 +112,8 @@ export function MatchReview({ record }: { record: PredictionRecord }) {
         </p>
       </section>
       <p className="reading-limit">
-        以上解读依据本场分图与选手统计，不包含录像中的战术、经济或具体交火过程。同特工比较不代表两人直接对决。
+        以上是 AI
+        结合分图和选手统计给出的比赛解读，原因分析属于可能解释，并非录像确认的过程。同特工比较不代表两人直接对决；正式预测与赛果不受这些解读影响。
       </p>
     </article>
   );

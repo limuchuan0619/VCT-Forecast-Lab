@@ -215,7 +215,7 @@ test('R2 structured extraction preserves visible JSON budget by disabling hidden
   assert.equal(POSTMATCH_R2_REASONING_EFFORT, 'none');
   assert.equal(
     POSTMATCH_JOB_PROMPT_VERSION,
-    'vct-postmatch-deepseek-v18-evidence1',
+    'vct-postmatch-deepseek-v20-balanced1',
   );
 });
 

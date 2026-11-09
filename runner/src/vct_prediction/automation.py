@@ -1028,6 +1028,13 @@ def run_daily_automation(
             "stale": counters["stale_fixtures"],
         }
         try:
+            from .settlement_checks import reconcile_confirmed_results
+            recovery = reconcile_confirmed_results(db)
+            counters['settlement_reconciliation'] = recovery
+            if evidence_store is not None:
+                for receipt in recovery['recovered']:
+                    evidence_store.safe_append('settlement_recovery',receipt['prediction_id'],receipt,
+                        source_id='canonical_db',observed_at=_now())
             review_result = refresh_prediction_reviews(db)
             counters.update(review_result)
             counters["phases"]["prediction_review"] = {"status": "completed", **review_result}
@@ -1038,6 +1045,12 @@ def run_daily_automation(
             settlement = settle_shadow_predictions(db)
             counters.update(settlement)
             counters["challenger_evaluation"] = prospective_metrics(db)
+            try:
+                from .cohort_evaluation import evaluate_cohorts
+                with db.connect() as connection:
+                    counters['challenger_cohorts'] = evaluate_cohorts(connection)
+            except Exception as exc:
+                counters['challenger_cohorts'] = {'status':'UNAVAILABLE','error':type(exc).__name__,'promotion_enabled':False}
             counters["blocker_coverage"] = blocker_coverage(db)
             counters["phases"]["challenger_settlement"] = {"status": "completed", **settlement}
         except Exception as exc:

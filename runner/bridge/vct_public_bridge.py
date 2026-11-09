@@ -22,6 +22,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from vct_prediction.sources.vlr import _complete_competitive_map_score
+from vct_prediction.settlement_checks import comparison_issue, quarantined_results
 
 
 MAP_NAMES = {
@@ -210,6 +211,8 @@ def prematch_reader_context(connection: sqlite3.Connection, row: sqlite3.Row) ->
 
 
 def resolved_payload(connection: sqlite3.Connection, row: sqlite3.Row) -> dict[str, Any] | None:
+    if row['status'] == 'resolved' and comparison_issue(row['series_format'], row['result_series_format'], row['actual_score']):
+        return None
     if row["status"] != "resolved" or not row["actual_winner_name"] or not row["actual_score"]:
         return None
     map_rows = connection.execute(
@@ -286,7 +289,7 @@ def resolved_payload(connection: sqlite3.Connection, row: sqlite3.Row) -> dict[s
             "series": {
                 "actualWinner": row["actual_winner_name"], "actualScore": row["actual_score"],
                 "scheduledAt": iso(row["scheduled_at"]), "playedAt": iso(row["result_played_at"]),
-                "seriesFormat": row["series_format"],
+                "seriesFormat": row["result_series_format"],
             },
             "maps": actual_maps,
             "playerStats": player_stats,
@@ -334,6 +337,8 @@ def metrics(rows: Iterable[sqlite3.Row]) -> dict[str, Any]:
     for row in rows:
         if row["status"] != "resolved" or not row["actual_winner_id"]:
             continue
+        if comparison_issue(row['series_format'], row['result_series_format'], row['actual_score']):
+            continue
         group = "system" if row["source"].startswith("system") else "human" if row["source"].startswith("human") else row["source"]
         groups[group].append((float(row["team_a_win_probability"]), int(row["actual_winner_id"] == row["team_a_id"])))
     result: dict[str, Any] = {}
@@ -379,6 +384,7 @@ def rows_from_database(connection: sqlite3.Connection, source: str, limit: int |
         where = "WHERE p.source LIKE 'human%'"
     sql = f"""SELECT p.*, ta.name AS team_a_name, tb.name AS team_b_name,
       aw.name AS actual_winner_name, m.played_at AS result_played_at, m.source_url AS result_source_url,
+      m.series_format AS result_series_format,
       m.inserted_at AS result_inserted_at, p.resolved_match_id,
       (SELECT generated_at FROM prediction_reviews r WHERE r.prediction_id=p.prediction_id LIMIT 1) AS review_generated_at
       FROM predictions p
@@ -398,7 +404,9 @@ def state_payload(connection: sqlite3.Connection, rows: list[sqlite3.Row]) -> di
     matches = int(connection.execute("SELECT COUNT(*) FROM matches").fetchone()[0])
     teams = int(connection.execute("SELECT COUNT(*) FROM teams").fetchone()[0])
     cutoff = connection.execute("SELECT MAX(played_at) FROM matches").fetchone()[0]
-    resolved = sum(1 for row in rows if row["status"] == "resolved")
+    quarantines = quarantined_results(connection)
+    quarantined_ids = {item['prediction_id'] for item in quarantines}
+    resolved = sum(1 for row in rows if row["status"] == "resolved" and row['prediction_id'] not in quarantined_ids)
     system_versions = [str(row["model_version"]) for row in rows if row["source"].startswith("system")]
     version = system_versions[-1] if system_versions else "v1.0.0"
     latest_run = connection.execute(
@@ -428,6 +436,7 @@ def state_payload(connection: sqlite3.Connection, rows: list[sqlite3.Row]) -> di
             "regions": 4,
             "cutoffAt": iso(cutoff),
         },
+        "resultQuarantines": quarantines,
         "model": {
             "version": version,
             "role": "champion",
@@ -469,6 +478,7 @@ def state_payload(connection: sqlite3.Connection, rows: list[sqlite3.Row]) -> di
             "historicalEvaluationIncluded": False,
             "metricIntegrity": counters.get("challenger_evaluation", {}).get("metric_integrity", {"status": "UNVERIFIED"}),
             "metrics": counters.get("challenger_evaluation", {}).get("metrics"),
+            "cohortEvaluation": counters.get("challenger_cohorts"),
         },
     }
 
@@ -540,6 +550,8 @@ def synchronize(
         for name in ("predictions", "challengers", "results", "ai_jobs", "state")
     }
     failures: list[dict[str, str]] = []
+    quarantine_rows = [item for item in quarantined_results(connection) if item['prediction_id'] in {row['prediction_id'] for row in rows}]
+    counters['results']['quarantined'] = len(quarantine_rows)
 
     def attempt(kind: str, item_id: str, path: str, payload: dict[str, Any], timeout_seconds: int = 30) -> None:
         counters[kind]["attempted"] += 1
@@ -606,6 +618,7 @@ def synchronize(
         "ok": status == "SUCCESS", "status": status, "syncRunId": sync_run_id,
         "baseUrl": base_url, "source": source, "counters": counters,
         "failures": failures[:200],
+        "resultQuarantines": quarantine_rows,
         "predictions": counters["predictions"]["succeeded"],
         "challengers": counters["challengers"]["succeeded"],
         "results": counters["results"]["succeeded"],

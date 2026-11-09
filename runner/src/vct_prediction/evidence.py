@@ -207,7 +207,12 @@ class EvidenceLedger:
 
     def sync_main_records(self, db):
         """Bounded private copies; never write the canonical database or invent as-of data."""
+        from .settlement_checks import quarantined_results
         with db.connect() as source:
+            for record in quarantined_results(source):
+                self.append('result_quarantine', record['prediction_id'], record,
+                            source_id='canonical_db', observed_at=record['inserted_at'] or utcnow(),
+                            source_url=record['source_url'])
             for table, key, bootstrap_limit in (('prospective_snapshots','snapshot_id',200), ('matches','match_id',200)):
                 with self.connect() as c:
                     cursor = c.execute('SELECT last_rowid FROM cursors WHERE name=?',(table,)).fetchone()

@@ -118,6 +118,7 @@ def process_match(connection: Any, match: dict[str, Any], config: dict[str, Any]
         """UPDATE predictions
            SET status='resolved', actual_winner_id=?, actual_score=?, resolved_match_id=?
            WHERE status='locked' AND team_a_id=? AND team_b_id=?
+             AND series_format=?
              AND ABS(julianday(scheduled_at) - julianday(?)) <= 1.0""",
         (
             match["winner_id"],
@@ -125,6 +126,7 @@ def process_match(connection: Any, match: dict[str, Any], config: dict[str, Any]
             match["match_id"],
             match["team_a_id"],
             match["team_b_id"],
+            match["series_format"],
             match["played_at"],
         ),
     )
@@ -132,6 +134,7 @@ def process_match(connection: Any, match: dict[str, Any], config: dict[str, Any]
         """UPDATE predictions
            SET status='resolved', actual_winner_id=?, actual_score=?, resolved_match_id=?
            WHERE status='locked' AND team_a_id=? AND team_b_id=?
+             AND series_format=?
              AND ABS(julianday(scheduled_at) - julianday(?)) <= 1.0""",
         (
             match["winner_id"],
@@ -139,6 +142,7 @@ def process_match(connection: Any, match: dict[str, Any], config: dict[str, Any]
             match["match_id"],
             match["team_b_id"],
             match["team_a_id"],
+            match["series_format"],
             match["played_at"],
         ),
     )

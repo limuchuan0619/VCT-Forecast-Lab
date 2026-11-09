@@ -393,6 +393,80 @@ test('private request diagnostics never become completed articles or change a fr
   }
 });
 
+test('public overview excludes diagnostic and failed payloads, preserving the last complete article', async () => {
+  const { database, db, prediction } = await fixture();
+  const { env } = await import('cloudflare:workers');
+  const mutable = env as unknown as { DB?: D1Database };
+  const previous = mutable.DB;
+  mutable.DB = db;
+  const insert = database.raw
+    .prepare(`INSERT INTO ai_analyses(id,prediction_id,stage,provider,model_id,prompt_version,status,output_json,direct_promotion_allowed,created_at)
+    VALUES(?,?,'prematch','deepseek','isolated-model','isolated-prompt',?,?,0,?)`);
+  try {
+    insert.run(
+      'private-diagnostic',
+      prediction.id,
+      'diagnostic',
+      JSON.stringify({
+        schemaVersion: 'ai-private-attempt-v1',
+        rawResponse: 'private-response-marker',
+      }),
+      '2026-10-22T00:00:00Z',
+    );
+    assert.equal((await store.loadPublicOverview()).ai.analysis, null);
+    assert.equal(
+      (await store.predictionRecordById(prediction.id))!.prematchAiStatus,
+      null,
+    );
+    insert.run(
+      'failed-output',
+      prediction.id,
+      'failed',
+      JSON.stringify({ rawResponse: 'failed-response-marker' }),
+      '2026-10-20T00:00:00Z',
+    );
+    assert.equal((await store.loadPublicOverview()).ai.analysis, null);
+    const accepted = {
+      stage: 'prematch',
+      summary: 'Accepted isolated article only.',
+    };
+    insert.run(
+      'complete-output',
+      prediction.id,
+      'complete',
+      JSON.stringify(accepted),
+      '2026-10-21T00:00:00Z',
+    );
+    const before = database.raw.prepare('SELECT total_changes() AS n').get()!.n;
+    const overview = await store.loadPublicOverview();
+    assert.deepEqual(overview.ai.analysis, accepted);
+    assert.equal(overview.ai.status, 'available');
+    assert.doesNotMatch(
+      JSON.stringify(overview),
+      /private-response-marker|failed-response-marker|ai-private-attempt-v1/,
+    );
+    assert.equal(
+      (await store.predictionRecordById(prediction.id))!.prematchAiStatus,
+      'complete',
+    );
+    assert.equal(
+      database.raw.prepare('SELECT total_changes() AS n').get()!.n,
+      before,
+    );
+    assert.equal(
+      database.raw
+        .prepare(
+          "SELECT COUNT(*) AS n FROM ai_analyses WHERE status='diagnostic'",
+        )
+        .get()!.n,
+      1,
+    );
+  } finally {
+    mutable.DB = previous;
+    database.raw.close();
+  }
+});
+
 test('prematch prompt upgrade preserves an existing queued job and its original packet', async () => {
   const { database, db, prediction } = await fixture();
   try {

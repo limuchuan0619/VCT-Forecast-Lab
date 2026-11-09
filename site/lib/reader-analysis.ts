@@ -415,6 +415,7 @@ export function validateReaderReview(
   value: unknown,
   insights: ReaderInsights,
   references: string[],
+  options: { advisory?: boolean } = {},
 ) {
   const v = value as ReaderReview;
   if (
@@ -450,6 +451,7 @@ export function validateReaderReview(
         throw new Error('schema_reader_impossible_opening_count');
   }
   if (
+    !options.advisory &&
     insights.analysisStyle === 'comparison_v2' &&
     /中后[期段]|回合控制|控图|关键回合|战术压制|残局|首杀转化率|心理崩溃|前压|推进空间|定位阶段|枪械|回合效率|更擅长/.test(
       [

@@ -22,4 +22,4 @@ The portfolio Vite configuration uses a placeholder local D1 binding. The produc
 
 The public seed migration is an explicitly empty local initialization. Historical production counts and real match rows are not seeded. Initialize the included schema migrations into your own local D1 database before exercising data-backed pages; a successful build alone does not provision a database or validate a live provider.
 
-Reader-facing pages are prediction history/details, match reviews and model comparison. Deterministic settlement, source evidence and AI hypotheses remain separate. AI tests use isolated fixtures and mocked provider responses, not paid live DeepSeek calls.
+The exported source corresponds to Sites Version44. Navigation groups prediction history/details and match reviews under Home, with model comparison under Model Lab. Deterministic settlement, source evidence and AI hypotheses remain separate. AI tests use isolated fixtures and mocked provider responses, not paid live DeepSeek calls.

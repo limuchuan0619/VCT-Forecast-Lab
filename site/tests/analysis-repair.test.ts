@@ -7,10 +7,12 @@ import { prematchReasons, readerInsights } from '../lib/reader-analysis.ts';
 import { validatedPrematchContext } from '../lib/prematch-context.ts';
 import {
   reviewObservations,
+  evidenceSelectionSchema,
   assembleEvidenceReview,
   validateEvidenceArticle,
   EVIDENCE_REVIEW_PROMPT,
   EVIDENCE_REVIEW_SCHEMA,
+  EVIDENCE_REVIEW_POLICY,
 } from '../lib/review-evidence.ts';
 import type { EvidenceSelection } from '../lib/review-evidence.ts';
 import {
@@ -18,6 +20,8 @@ import {
   validateR2Analysis,
   validatePrematchAnalysis,
 } from '../lib/ai-reliability.ts';
+import { verifiedReaderReview } from '../lib/match-review.ts';
+import type { PostmatchAiReview } from '../lib/vct-types.ts';
 
 registerHooks({
   resolve(specifier, context, next) {
@@ -327,6 +331,50 @@ test('missing player metrics stay unavailable instead of becoming fabricated lea
   const obs = reviewObservations(readerInsights(r), [r.teamA, r.teamB]);
   assert.ok(!obs.some((o) => o.id === 'map:1:leaders'));
 });
+
+test('legacy v19 numeric restrictions remain reproducible without rewriting old records', () => {
+  const r = fixture(),
+    ins = r.postmatchEvidence!.readerInsights!,
+    obs = reviewObservations(ins, [r.teamA, r.teamB]);
+  const s = selection(r);
+  s.summary = 'LOUD以3:1取胜，过程胶着。';
+  s.reasons = [
+    {
+      observation_id: 'series:map-differences',
+      title: '接近的地图',
+      interpretation: '两图分差只有2到3分。',
+    },
+  ];
+  assert.throws(
+    () =>
+      assembleEvidenceReview(
+        s,
+        obs,
+        ins,
+        r.postmatchEvidence!.evidenceReferences,
+      ),
+    (error: any) => {
+      assert.deepEqual(error.validationIssues, [
+        { path: 'summary', reason: 'numeric_prose_use_server_fact' },
+        {
+          path: 'reasons[0].interpretation',
+          reason: 'numeric_prose_use_server_fact',
+        },
+      ]);
+      return true;
+    },
+  );
+  const numeric = structuredClone(ins);
+  numeric.maps[0].players[0].team = '100 Thieves';
+  const guarded = evidenceSelectionSchema(obs, numeric, true);
+  const pattern = new RegExp(guarded.properties.summary.pattern!);
+  assert.ok(pattern.test('100 Thieves 在这张图保有竞争力。'));
+  assert.ok(!pattern.test('LOUD以3:1取胜。'));
+  assert.equal(
+    evidenceSelectionSchema(obs, ins).properties.summary.pattern,
+    undefined,
+  );
+});
 test('new review uses one bounded request; one validation repair is allowed, trace excludes credentials, probability immutable', async () => {
   const original = globalThis.fetch;
   const r = fixture(),
@@ -367,6 +415,16 @@ test('new review uses one bounded request; one validation repair is allowed, tra
       JSON.parse(bodies[1].input).validation_error,
       'schema_evidence_unproven_interpretation',
     );
+    assert.deepEqual(JSON.parse(bodies[1].input).validation_issues, [
+      {
+        path: 'maps[0].interpretation',
+        reason: 'numeric_fact_not_in_selected_evidence',
+      },
+    ]);
+    assert.equal(
+      bodies[0].text.format.schema.properties.summary.pattern,
+      undefined,
+    );
     assert.ok(traces.some((t) => t.phase === 'article_repair'));
     assert.doesNotMatch(JSON.stringify(traces), /isolated-secret-key/);
     validateR2Analysis(response.output, r.postmatchEvidence!);
@@ -378,6 +436,112 @@ test('new review uses one bounded request; one validation repair is allowed, tra
   } finally {
     globalThis.fetch = original;
   }
+});
+test('advisory policy allows sourced numbers, repeated evidence and cautious interpretation in one provider call', async () => {
+  const original = globalThis.fetch;
+  const r = fixture(),
+    before = JSON.stringify(r);
+  const output = selection(r);
+  output.summary = 'LOUD以1:2落败，不同地图的输出支点可能影响了整体表现。';
+  output.reasons = [
+    {
+      observation_id: output.maps[0].observation_id,
+      title: '输出与比赛意义',
+      interpretation:
+        '最高击杀选手得到16杀，这可能与关键回合的贡献有关，仍需录像核实。',
+    },
+  ];
+  output.maps[0].interpretation =
+    '目前无法确认关键回合和战术压制，但输出差异可以作为一种解释。';
+  let calls = 0;
+  globalThis.fetch = (async (_url, init) => {
+    calls++;
+    const body = JSON.parse(init!.body as string);
+    assert.equal(body.text.format.schema.properties.summary.pattern, undefined);
+    return new Response(
+      JSON.stringify({ output_text: JSON.stringify(output) }),
+      { status: 200 },
+    );
+  }) as typeof fetch;
+  try {
+    const response = await analyzePostmatchR2(
+      'mock-secret',
+      'mock',
+      r,
+      r.postmatchEvidence!,
+      {
+        promptVersion: EVIDENCE_REVIEW_PROMPT,
+        schemaVersion: EVIDENCE_REVIEW_SCHEMA,
+      },
+    );
+    const article = response.output as unknown as PostmatchAiReview;
+    assert.equal(calls, 1, 'wording warnings never spend a repair request');
+    assert.equal(
+      response.output.reader_editorial_policy,
+      EVIDENCE_REVIEW_POLICY,
+    );
+    assert.ok(
+      article.reader_editorial_warnings!.some(
+        (w: any) => w.reason === 'repeated_observation',
+      ),
+    );
+    assert.ok(
+      article.reader_editorial_warnings!.some(
+        (w: any) => w.reason === 'interpretation_not_verified_match_process',
+      ),
+    );
+    validateR2Analysis(response.output, r.postmatchEvidence!);
+    assert.equal(JSON.stringify(r), before, 'no frozen prediction mutation');
+    r.postmatchReview = article;
+    assert.ok(
+      verifiedReaderReview(r),
+      'display must honor the same saved policy',
+    );
+    const tampered = structuredClone(article);
+    tampered.reader_review!.maps[0].fact = '伪造的正式比分';
+    assert.throws(
+      () => validateR2Analysis(tampered, r.postmatchEvidence!),
+      /article_changed/,
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+test('advisory policy still rejects invented numbers, score conflicts and cross-map binding', () => {
+  const r = fixture(),
+    ins = r.postmatchEvidence!.readerInsights!;
+  const obs = reviewObservations(ins, [r.teamA, r.teamB]);
+  for (const text of ['他每回合伤害1743。', '这张图的比分是13:13。']) {
+    const s = selection(r);
+    s.maps[0].interpretation = text;
+    assert.throws(
+      () =>
+        assembleEvidenceReview(
+          s,
+          obs,
+          ins,
+          r.postmatchEvidence!.evidenceReferences,
+          { advisory: true },
+        ),
+      (e: any) =>
+        e.validationIssues.some(
+          (w: any) => w.reason === 'numeric_fact_not_in_selected_evidence',
+        ),
+    );
+  }
+  const s = selection(r);
+  s.maps[0].observation_id = 'map:2:leaders';
+  assert.throws(
+    () =>
+      assembleEvidenceReview(
+        s,
+        obs,
+        ins,
+        r.postmatchEvidence!.evidenceReferences,
+        { advisory: true },
+      ),
+    /binding/,
+  );
 });
 test('permanent bad output stops after two calls and transport failure is left to bounded job retry', async () => {
   const original = globalThis.fetch;

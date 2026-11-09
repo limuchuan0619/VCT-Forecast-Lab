@@ -20,10 +20,12 @@ import type { EditorialPlan } from './review-editorial.ts';
 import {
   EVIDENCE_REVIEW_PROMPT,
   EVIDENCE_REVIEW_SCHEMA,
+  EVIDENCE_REVIEW_POLICY,
   reviewObservations,
   evidenceSelectionSchema,
   assembleEvidenceReview,
   evidenceReviewInstruction,
+  advisoryEvidenceReviewInstruction,
 } from './review-evidence.ts';
 import type { EvidenceSelection } from './review-evidence.ts';
 import { validatedPrematchContext } from './prematch-context.ts';
@@ -1074,6 +1076,10 @@ export async function analyzePostmatchR2(
     const requests: DeepSeekRequestMeta[] = [];
     let rejected: unknown;
     let validationError = '';
+    let validationIssues: unknown;
+    const advisory = versions.promptVersion === EVIDENCE_REVIEW_PROMPT;
+    const numericGuard =
+      versions.promptVersion === 'vct-postmatch-deepseek-v19-evidence2';
     const deadline = Date.now() + 65000;
     for (let pass = 0; pass < 2; pass++) {
       const response = await requestJson<EvidenceSelection>({
@@ -1081,11 +1087,22 @@ export async function analyzePostmatchR2(
         modelId,
         promptVersion: versions.promptVersion ?? EVIDENCE_REVIEW_PROMPT,
         schemaName: 'vct_evidence_selected_review_v1',
-        schema: evidenceSelectionSchema(observations, packet.readerInsights),
+        schema: evidenceSelectionSchema(
+          observations,
+          packet.readerInsights,
+          numericGuard,
+        ),
         input: {
           stage: 'postmatch',
           instruction:
-            evidenceReviewInstruction + '\n' + VALORANT_GLOSSARY_INSTRUCTION,
+            (advisory
+              ? advisoryEvidenceReviewInstruction
+              : evidenceReviewInstruction) +
+            '\n' +
+            VALORANT_GLOSSARY_INSTRUCTION +
+            (numericGuard
+              ? '\n硬性格式：除来源中的完整队名或选手名以外，summary、title、interpretation 不能出现阿拉伯数字。比分、杀数、伤害与分差已在网页事实栏呈现，不要在解释里复述，也不要改写中文数字绕过。用接近、大胜、局部优势等定性表达，不虚构比赛过程。最高击杀者不同只说明这个统计的分布，不能据此证明胜负由谁单独决定。'
+              : ''),
           teams: [prediction.teamA, prediction.teamB],
           observations,
           missingEvidence: packet.missingEvidence,
@@ -1093,8 +1110,14 @@ export async function analyzePostmatchR2(
             ? {
                 rejected_selection: rejected,
                 validation_error: validationError,
-                repair_instruction:
-                  '只修正指出的引用或解释错误，保留原证据；不能证明的判断删去，不增加数字和比赛过程。',
+                ...(numericGuard || advisory
+                  ? { validation_issues: validationIssues }
+                  : {}),
+                repair_instruction: advisory
+                  ? '只修复validation_error/validation_issues中的事实数字、比分、引用或结构错误，保留可用的原文。措辞、重复和合理推断不需要重写；推测不要说成已确认事实。返回完整JSON。'
+                  : numericGuard
+                    ? 'validation_issues列出了所有违规字段。一次修正所有这些字段：删除统计数字和比分的复述，改成不含数值的定性解释；事实数字由系统另行显示。不换证据，不增加比赛过程，返回完整JSON。'
+                    : '只修正指出的引用或解释错误，保留原证据；不能证明的判断删去，不增加数字和比赛过程。',
               }
             : {}),
         },
@@ -1109,11 +1132,13 @@ export async function analyzePostmatchR2(
       });
       requests.push(response.meta);
       try {
+        const editorialWarnings: Array<{ path: string; reason: string }> = [];
         const article = assembleEvidenceReview(
           response.output,
           observations,
           packet.readerInsights,
           packet.evidenceReferences,
+          { advisory, onWarning: (issue) => editorialWarnings.push(issue) },
         );
         return {
           ...response,
@@ -1166,6 +1191,12 @@ export async function analyzePostmatchR2(
             reader_evidence_selection: response.output,
             reader_evidence_version: EVIDENCE_REVIEW_SCHEMA,
             reader_generation_mode: 'evidence_selected_commentary',
+            ...(advisory
+              ? {
+                  reader_editorial_policy: EVIDENCE_REVIEW_POLICY,
+                  reader_editorial_warnings: editorialWarnings,
+                }
+              : {}),
             reader_provider_requests: requests,
           },
         };
@@ -1173,10 +1204,15 @@ export async function analyzePostmatchR2(
         rejected = response.output;
         validationError =
           error instanceof Error ? error.message : 'schema_evidence_validation';
+        validationIssues =
+          error && typeof error === 'object' && 'validationIssues' in error
+            ? error.validationIssues
+            : undefined;
         try {
           await versions.onDiagnostic?.({
             phase: 'article_validation',
             error: validationError,
+            validationIssues,
             rejectedOutput: rejected,
             requestHash: await sha256(response.output),
             requestCompletedAt: new Date().toISOString(),

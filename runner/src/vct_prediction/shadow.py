@@ -20,6 +20,7 @@ from .db import Database
 from .math_utils import clamp, logistic_rating
 from .ratings import calculate_update
 from .competition import is_primary
+from .settlement_checks import comparison_issue
 
 
 MODEL_ID = "logistic_c1_v1.4b_20260903"
@@ -433,12 +434,18 @@ SETTLEMENT_FIELDS = (
 )
 SHADOW_RESULT_SELECT = """SELECT c.*,p.team_a_id,p.team_b_id,
     p.actual_winner_id AS canonical_winner_id,p.resolved_match_id AS canonical_match_id,
-    p.team_a_win_probability AS canonical_probability
+    p.team_a_win_probability AS canonical_probability,
+    p.series_format AS frozen_series_format,p.actual_score AS canonical_score,
+    m.series_format AS canonical_series_format
     FROM challenger_predictions c JOIN predictions p ON p.prediction_id=c.champion_prediction_id
+    LEFT JOIN matches m ON m.match_id=p.resolved_match_id
     WHERE p.status='resolved' AND c.status IN ('locked','resolved')"""
 
 
 def _expected_settlement(row: Any) -> dict[str, Any]:
+    issue = comparison_issue(row['frozen_series_format'], row['canonical_series_format'], row['canonical_score'])
+    if issue:
+        raise ValueError(issue)
     # Never read an unaliased duplicate result column from a joined SQLite Row.
     winner = row["canonical_winner_id"]
     if winner not in {row["team_a_id"], row["team_b_id"]} or not row["canonical_match_id"]:

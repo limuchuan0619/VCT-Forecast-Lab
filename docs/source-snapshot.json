@@ -1,0 +1,116 @@
+{
+  "snapshot_date": "2026-11-09",
+  "publication_baseline": "fba8f0770a5c7b82ab3b71f4dcfc1696cbc689bc",
+  "source_revisions": {
+    "model": {
+      "head": "66bb38bd2cd454084e065ad33810c917f413d486",
+      "scoring_changes_in_this_refresh": false
+    },
+    "runner": {
+      "head": "d6ff9df972d9e7c1086fb1340a703367fbc7385a",
+      "includes_reviewed_working_tree": true,
+      "release_reference": "2026-11-04 operational recovery"
+    },
+    "site": {
+      "head": "2e915d07cbb9b09ebee6c982577f23f38b2bd0f5",
+      "deployed_version": 44
+    }
+  },
+  "publication_adaptations": [
+    "Schema-only seed; no private databases or match-level datasets",
+    "Placeholder local D1 bindings; no hosting or Railway bindings",
+    "Explicit skips for tests requiring excluded private seed",
+    "Frozen C1 public parameter subset retained; its hash is not the complete production artifact hash"
+  ],
+  "updated_source_files": [
+    {
+      "path": "runner/bridge/vct_public_bridge.py",
+      "sha256": "85aefe90854186ca7104245530b7edae60ef1314af28f600dfb705c6e9c1e90c"
+    },
+    {
+      "path": "runner/src/vct_prediction/automation.py",
+      "sha256": "b2c81090d91875c1b42b8db3a904c1bebad7e19187bf1bf0c3534fde5e4b0255"
+    },
+    {
+      "path": "runner/src/vct_prediction/evidence.py",
+      "sha256": "8783edb977398426cad62ceb9aa84c72c25ff351d934aea852b8102b3f26f45d"
+    },
+    {
+      "path": "runner/src/vct_prediction/ratings.py",
+      "sha256": "6634251264b11dfb14930110c5a585545945b56a7911a8d2b6a9d0f11f319e15"
+    },
+    {
+      "path": "runner/src/vct_prediction/reviews.py",
+      "sha256": "cbc16240c70b1b1a4a9d1fa462300cd730ece8ac422c0a8aff452060ee49ffc6"
+    },
+    {
+      "path": "runner/src/vct_prediction/shadow.py",
+      "sha256": "5bba329317f7a8058f13eca64cd1ff47fff725694aa3a0035d957562d8587440"
+    },
+    {
+      "path": "site/components/match-review.tsx",
+      "sha256": "77b9f600ab4347496833b44b325d5e31a48da509a28688377fb816f62d05bca9"
+    },
+    {
+      "path": "site/lib/ai-reliability.ts",
+      "sha256": "9a4a41033a24a808bf3461c26683cc1184b0ae56302f540afa9a5f878cf469f0"
+    },
+    {
+      "path": "site/lib/deepseek.ts",
+      "sha256": "36a1aac3b4d80e6964bf246c647dc067132a7eabad3dff6d1dcaad643e7f8cf3"
+    },
+    {
+      "path": "site/lib/match-review.ts",
+      "sha256": "c471f14ffbf059c1c2055a0e802f35e2663b677edc5d971b2308ab5b7bad9f67"
+    },
+    {
+      "path": "site/lib/prediction-store.ts",
+      "sha256": "cc269ae73f229f546f8c9fce174bc946506bb3e647a5b141a982a6c066a7d72d"
+    },
+    {
+      "path": "site/lib/reader-analysis.ts",
+      "sha256": "30bb7c4f60007431ecf444a4dabff8a1adbbcceb2eee00fdfceb2dc3aa2418cd"
+    },
+    {
+      "path": "site/lib/review-evidence.ts",
+      "sha256": "4a7b50cf2a5ab6366a90f4ff5fdd2e5cb137cdb519bd45547642c669b97c7dca"
+    },
+    {
+      "path": "site/lib/vct-types.ts",
+      "sha256": "e77ae945728cd2f75eb62a9a170ff2029974ea96e80ee37e7f8b115ca581bb8a"
+    },
+    {
+      "path": "site/tests/ai-reliability.test.ts",
+      "sha256": "cc107df6fba1ab39cd9096abc79ffa969b8e5206560f001e8b6d19493877a1a3"
+    },
+    {
+      "path": "site/tests/analysis-repair.test.ts",
+      "sha256": "fcf5dc218341c666e7501a0efb10beba41ca57cb0d0bf1e8561579667f22c384"
+    },
+    {
+      "path": "site/tests/diagnosis-queue.test.ts",
+      "sha256": "8ce51114a6a5af4200c34dc7bb31e06993ab3c370c1954ecc6838eb3a1ff7b04"
+    },
+    {
+      "path": "site/tests/review-provider.test.ts",
+      "sha256": "59b3403088b8e4121d813d251f6a71d3f9acb6976a355abd6734ffcc62294a39"
+    },
+    {
+      "path": "runner/src/vct_prediction/cohort_evaluation.py",
+      "sha256": "3d5adc27ef41aaf583c2f11b4cde92cf2b970bca8ed4f66193b051ae11858fc2"
+    },
+    {
+      "path": "runner/src/vct_prediction/settlement_checks.py",
+      "sha256": "7010072aecc0230f5361acffafceffc930dfebeeca4be25797ee729c52f8b256"
+    },
+    {
+      "path": "runner/tests/test_settlement_recovery.py",
+      "sha256": "46ae56f02ef2912e072f2cda9acb83f7fef7b39d6d35112d6aff5209bb99554f"
+    },
+    {
+      "path": "runner/scripts/evaluate_frozen_cohorts.py",
+      "sha256": "3685ea26eac7e8a38bfa50eb15a1029f909c466762c5644d84d638c9a0fa0c6a"
+    }
+  ],
+  "production_deployment_performed": false
+}

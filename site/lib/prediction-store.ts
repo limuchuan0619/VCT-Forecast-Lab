@@ -202,12 +202,12 @@ const predictionRecordSelect = `SELECT p.*,
     ORDER BY datetime(created_at) DESC LIMIT 1) AS prematch_ai_model_id,
   COALESCE((SELECT status FROM ai_analysis_jobs WHERE prediction_id=p.id AND stage='prematch'
     ORDER BY datetime(created_at) DESC LIMIT 1),(SELECT status FROM ai_analyses WHERE prediction_id=p.id AND stage='prematch'
-    ORDER BY datetime(created_at) DESC LIMIT 1)) AS prematch_ai_status,
+    AND status!='diagnostic' ORDER BY datetime(created_at) DESC LIMIT 1)) AS prematch_ai_status,
   (SELECT output_json FROM ai_analyses WHERE prediction_id=p.id AND stage='prematch' AND status='complete'
     ORDER BY datetime(created_at) DESC LIMIT 1) AS prematch_ai_json,
   COALESCE((SELECT status FROM ai_analysis_jobs WHERE prediction_id=p.id AND stage='postmatch'
     ORDER BY datetime(created_at) DESC LIMIT 1),(SELECT status FROM ai_analyses WHERE prediction_id=p.id AND stage='postmatch'
-    ORDER BY datetime(created_at) DESC LIMIT 1)) AS postmatch_ai_status,
+    AND status!='diagnostic' ORDER BY datetime(created_at) DESC LIMIT 1)) AS postmatch_ai_status,
   (SELECT output_json FROM ai_analyses WHERE prediction_id=p.id AND stage='postmatch' AND status='complete'
     ORDER BY datetime(created_at) DESC LIMIT 1) AS postmatch_ai_json,
   (SELECT COUNT(*) FROM result_evidence_revisions WHERE prediction_id=p.id) AS result_correction_count
@@ -2229,7 +2229,7 @@ export async function loadPublicOverview(): Promise<PublicOverview> {
     const aiReliability = await loadAiReliability(env.DB);
     const analysisRow =
       await env.DB.prepare(`SELECT output_json, status FROM ai_analyses
-      WHERE prediction_id = ? AND stage = 'prematch' ORDER BY datetime(created_at) DESC LIMIT 1`)
+      WHERE prediction_id = ? AND stage = 'prematch' AND status='complete' ORDER BY datetime(created_at) DESC LIMIT 1`)
         .bind(prediction.id)
         .first<Record<string, unknown>>();
     const counts = await env.DB.prepare(`SELECT COUNT(*) AS predictions,
@@ -2289,9 +2289,13 @@ export async function loadPublicOverview(): Promise<PublicOverview> {
               ? 'ready'
               : 'waiting_for_key',
         modelId,
-        analysis: analysisRow?.output_json
-          ? parseJson<PrematchAiAnalysis | null>(analysisRow.output_json, null)
-          : null,
+        analysis:
+          analysisRow?.status === 'complete' && analysisRow.output_json
+            ? parseJson<PrematchAiAnalysis | null>(
+                analysisRow.output_json,
+                null,
+              )
+            : null,
       },
       governance: {
         champion: asString(

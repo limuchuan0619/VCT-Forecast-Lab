@@ -8,6 +8,7 @@ import type { ReaderInsights } from './reader-analysis.ts';
 import { CN_MAPS } from './valorant-terms.ts';
 import {
   EVIDENCE_REVIEW_PROMPT,
+  EVIDENCE_REVIEW_POLICY,
   EVIDENCE_REVIEW_SCHEMA,
   validateEvidenceArticle,
 } from './review-evidence.ts';
@@ -934,6 +935,7 @@ export function validateR2Analysis(
       item.reader_review,
       packet.readerInsights,
       packet.evidenceReferences,
+      { advisory: item.reader_editorial_policy === EVIDENCE_REVIEW_POLICY },
     );
   if (
     packet?.readerInsights &&

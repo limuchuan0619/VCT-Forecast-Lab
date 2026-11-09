@@ -9,6 +9,9 @@ Key files:
 - [db.py](src/vct_prediction/db.py) - immutable snapshots and prediction records
 - [vct_public_bridge.py](bridge/vct_public_bridge.py) - bounded public synchronization
 - [runner_service.py](runner_service.py) - service health and scheduled cycle
+- [settlement_checks.py](src/vct_prediction/settlement_checks.py) - exact-fixture reconciliation and incompatible-result quarantine
+- [cohort_evaluation.py](src/vct_prediction/cohort_evaluation.py) - read-only per-cohort metrics and frozen-probability reproduction
+- [evaluate_frozen_cohorts.py](scripts/evaluate_frozen_cohorts.py) - optional read-only diagnostics against your own authorized database
 - [competition.py](src/vct_prediction/competition.py) - four-region discovery policy and separate competition cohorts
 
 The included C1 files are a public reproducibility subset: parameters and aggregate evaluation metadata only. The production seed database and Railway binding are not included.

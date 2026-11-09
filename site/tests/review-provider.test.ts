@@ -199,7 +199,7 @@ test('explicit editorial trial plans from evidence before writing; default autom
     assert.equal(JSON.stringify(record), before);
     assert.equal(
       POSTMATCH_JOB_PROMPT_VERSION,
-      'vct-postmatch-deepseek-v18-evidence1',
+      'vct-postmatch-deepseek-v20-balanced1',
     );
   } finally {
     globalThis.fetch = original;
